@@ -1,7 +1,7 @@
 from sqlalchemy.orm import configure_mappers
 
 from app.db.base import Base
-from app.models import AgentRun, EvalCase, EvalResult, TraceStep
+from app.models import AgentRun, EvalCase, EvalResult, KnowledgeDocument, TraceStep
 
 
 def test_core_models_can_be_imported() -> None:
@@ -9,6 +9,7 @@ def test_core_models_can_be_imported() -> None:
     assert TraceStep.__tablename__ == "trace_steps"
     assert EvalCase.__tablename__ == "eval_cases"
     assert EvalResult.__tablename__ == "eval_results"
+    assert KnowledgeDocument.__tablename__ == "knowledge_documents"
 
 
 def test_metadata_includes_core_tables() -> None:
@@ -17,6 +18,7 @@ def test_metadata_includes_core_tables() -> None:
         "trace_steps",
         "eval_cases",
         "eval_results",
+        "knowledge_documents",
     }.issubset(Base.metadata.tables.keys())
 
 

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "incident-triage-001",
+    "name": "Kafka duplicate key retry exhaustion",
+    "task": "A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.",
+    "expected_keywords": [
+      "duplicate key",
+      "retry exhaustion",
+      "idempotency",
+      "replay",
+      "existing record",
+      "database constraint",
+      "next steps"
+    ],
+    "expected_failure_modes": [
+      "Claims certainty without enough evidence",
+      "Ignores the duplicate key violation",
+      "Ignores retry exhaustion",
+      "Recommends deleting production data without investigation",
+      "Does not mention idempotency or replay"
+    ],
+    "minimum_score": 70
+  }
+]

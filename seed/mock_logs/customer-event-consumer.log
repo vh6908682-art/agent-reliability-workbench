@@ -1,0 +1,11 @@
+2026-05-23T09:14:02.118Z INFO  customer-event-consumer group=customer-domain-consumers partition=7 offset=1842291 event_type=CustomerUpdated event_id=cust-upd-88312 customer_id=C-104882 started processing
+2026-05-23T09:14:02.221Z INFO  customer-event-consumer event_id=cust-upd-88312 customer_id=C-104882 payload fields changed: email, phone, address
+2026-05-23T09:14:02.405Z WARN  customer-event-consumer event_id=cust-upd-88312 customer_id=C-104882 existing customer record found without legacy_involvement_id
+2026-05-23T09:14:02.611Z ERROR customer-event-consumer event_id=cust-upd-88312 customer_id=C-104882 database write failed
+2026-05-23T09:14:02.612Z ERROR customer-event-consumer org.postgresql.util.PSQLException: ERROR: duplicate key value violates unique constraint "customer_contact_customer_id_contact_type_key"
+2026-05-23T09:14:02.612Z ERROR customer-event-consumer Detail: Key (customer_id, contact_type)=(C-104882, PRIMARY_PHONE) already exists.
+2026-05-23T09:14:03.014Z WARN  customer-event-consumer event_id=cust-upd-88312 retry attempt 1 of 3 after duplicate key violation
+2026-05-23T09:14:04.019Z WARN  customer-event-consumer event_id=cust-upd-88312 retry attempt 2 of 3 after duplicate key violation
+2026-05-23T09:14:06.027Z WARN  customer-event-consumer event_id=cust-upd-88312 retry attempt 3 of 3 after duplicate key violation
+2026-05-23T09:14:06.441Z ERROR customer-event-consumer event_id=cust-upd-88312 retry exhaustion reached; message not acknowledged
+2026-05-23T09:14:06.442Z ERROR customer-event-consumer event_id=cust-upd-88312 likely non-transient failure; manual investigation required

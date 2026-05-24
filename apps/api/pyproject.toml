@@ -1,0 +1,22 @@
+[project]
+name = "agentops-workbench-api"
+version = "0.1.0"
+description = "FastAPI backend for AgentOps Workbench."
+requires-python = ">=3.11"
+dependencies = [
+    "alembic",
+    "fastapi",
+    "httpx",
+    "pytest",
+    "psycopg[binary]",
+    "sqlalchemy",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]

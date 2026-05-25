@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://agentops:agentops@localhost:5432/agentops"
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
+    cors_allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

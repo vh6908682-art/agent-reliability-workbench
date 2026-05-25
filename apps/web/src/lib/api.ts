@@ -52,6 +52,27 @@ export type AgentRunResponse = {
   trace_error?: string;
 };
 
+export type EvalCheckResult = {
+  name?: string;
+  passed?: boolean;
+  details?: Record<string, unknown>;
+};
+
+export type EvalCaseResult = {
+  case_id?: string;
+  name?: string;
+  passed?: boolean;
+  score?: number;
+  checks?: EvalCheckResult[];
+};
+
+export type EvalRunSummary = {
+  total?: number;
+  passed?: number;
+  failed?: number;
+  results?: EvalCaseResult[];
+};
+
 type ApiErrorDetail = {
   detail?: {
     error?: string;
@@ -62,12 +83,12 @@ type ApiErrorDetail = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-function getErrorMessage(body: unknown, status: number): string {
+function getErrorMessage(body: unknown, status: number, fallback: string): string {
   const detail = (body as ApiErrorDetail | null)?.detail;
   if (detail?.message) {
     return detail.message;
   }
-  return `Agent run failed with status ${status}.`;
+  return `${fallback} with status ${status}.`;
 }
 
 export async function createAgentRun(task: string): Promise<AgentRunResponse> {
@@ -82,7 +103,7 @@ export async function createAgentRun(task: string): Promise<AgentRunResponse> {
   const body = (await response.json().catch(() => null)) as unknown;
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(body, response.status));
+    throw new Error(getErrorMessage(body, response.status, "Agent run failed"));
   }
 
   const agentRun = body as AgentRunResponse;
@@ -109,8 +130,21 @@ export async function getAgentRun(runId: number): Promise<AgentRunDetailResponse
   const body = (await response.json().catch(() => null)) as unknown;
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(body, response.status));
+    throw new Error(getErrorMessage(body, response.status, "Trace details request failed"));
   }
 
   return body as AgentRunDetailResponse;
+}
+
+export async function runEvals(): Promise<EvalRunSummary> {
+  const response = await fetch(`${API_BASE_URL}/evals/run`, {
+    method: "POST"
+  });
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status, "Eval run failed"));
+  }
+
+  return body as EvalRunSummary;
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AgentRunForm } from "../components/AgentRunForm";
 import { AgentRunResult } from "../components/AgentRunResult";
+import { EvalRunnerPanel } from "../components/EvalRunnerPanel";
 import { TraceViewer } from "../components/TraceViewer";
 import type { AgentRunResponse } from "../lib/api";
 
@@ -58,6 +59,7 @@ export default function Home() {
           <AgentRunForm onResult={setResult} />
           <AgentRunResult result={result} />
           <TraceViewer result={result} />
+          <EvalRunnerPanel />
         </div>
       </section>
     </main>

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AgentRunForm } from "../components/AgentRunForm";
 import { AgentRunResult } from "../components/AgentRunResult";
+import { TraceViewer } from "../components/TraceViewer";
 import type { AgentRunResponse } from "../lib/api";
 
 const navItems = ["Run Agent", "Traces", "Validation", "Evals", "Guardrails", "Approvals"];
@@ -56,6 +57,7 @@ export default function Home() {
         <div className="space-y-5">
           <AgentRunForm onResult={setResult} />
           <AgentRunResult result={result} />
+          <TraceViewer result={result} />
         </div>
       </section>
     </main>

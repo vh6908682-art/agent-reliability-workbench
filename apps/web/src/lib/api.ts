@@ -8,12 +8,37 @@ export type ContextSource = {
   relevance_score?: number;
 };
 
+export type TraceStep = {
+  id: number;
+  step_index: number;
+  step_type: string;
+  name: string;
+  input: Record<string, unknown> | null;
+  output: Record<string, unknown> | null;
+  latency_ms: number | null;
+  created_at: string;
+};
+
 export type IncidentDiagnosis = {
   likely_cause?: string;
   evidence?: string[];
   recommended_next_steps?: string[];
   prevention?: string[];
   confidence?: string;
+};
+
+export type AgentRunDetailResponse = {
+  run_id: number;
+  task: string;
+  status: string;
+  final_answer: string | null;
+  structured_output: Record<string, unknown> | null;
+  validation_status: string | null;
+  latency_ms: number | null;
+  cost_usd: string | number | null;
+  created_at: string;
+  updated_at: string;
+  trace_steps: TraceStep[];
 };
 
 export type AgentRunResponse = {
@@ -23,6 +48,8 @@ export type AgentRunResponse = {
   structured_output?: IncidentDiagnosis | Record<string, unknown> | null;
   validation_status?: string | null;
   context_sources?: ContextSource[];
+  trace_detail?: AgentRunDetailResponse | null;
+  trace_error?: string;
 };
 
 type ApiErrorDetail = {
@@ -58,5 +85,32 @@ export async function createAgentRun(task: string): Promise<AgentRunResponse> {
     throw new Error(getErrorMessage(body, response.status));
   }
 
-  return body as AgentRunResponse;
+  const agentRun = body as AgentRunResponse;
+  if (!agentRun.run_id) {
+    return agentRun;
+  }
+
+  try {
+    return {
+      ...agentRun,
+      trace_detail: await getAgentRun(agentRun.run_id)
+    };
+  } catch (caught) {
+    return {
+      ...agentRun,
+      trace_detail: null,
+      trace_error: caught instanceof Error ? caught.message : "Trace details could not be loaded."
+    };
+  }
+}
+
+export async function getAgentRun(runId: number): Promise<AgentRunDetailResponse> {
+  const response = await fetch(`${API_BASE_URL}/agent-runs/${runId}`);
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status));
+  }
+
+  return body as AgentRunDetailResponse;
 }

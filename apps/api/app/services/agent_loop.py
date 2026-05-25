@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Protocol
 
 from app.schemas.agent_runs import AgentRunResponse, ContextSource
 from app.services.context_retriever import RetrievedContext, SeedContextRetriever
 from app.services.llm_client import OpenAILLMClient
+from app.services.trace_recorder import TraceRecorder, safe_error_output
 
 
 class LLMClient(Protocol):
@@ -17,6 +19,10 @@ class ContextRetriever(Protocol):
         pass
 
 
+def elapsed_ms(started_at: float) -> int:
+    return int((perf_counter() - started_at) * 1000)
+
+
 class IncidentTriageAgentLoop:
     def __init__(
         self,
@@ -26,22 +32,88 @@ class IncidentTriageAgentLoop:
         self.context_retriever = context_retriever or SeedContextRetriever()
         self.llm_client = llm_client or OpenAILLMClient()
 
-    def run(self, task: str) -> AgentRunResponse:
-        contexts = self.context_retriever.retrieve(task)
+    def run(self, task: str, trace_recorder: TraceRecorder | None = None) -> AgentRunResponse:
+        retrieval_started_at = perf_counter()
+        try:
+            contexts = self.context_retriever.retrieve(task)
+        except Exception as exc:
+            if trace_recorder:
+                trace_recorder.record(
+                    step_type="retrieval",
+                    name="context retrieval",
+                    input={"task": task},
+                    output=safe_error_output(exc),
+                    latency_ms=elapsed_ms(retrieval_started_at),
+                )
+            raise
+
+        context_sources = [
+            ContextSource(
+                source_path=context.source_path,
+                title=context.title,
+                document_type=context.document_type,
+                relevance_score=context.relevance_score,
+            )
+            for context in contexts
+        ]
+        if trace_recorder:
+            trace_recorder.record(
+                step_type="retrieval",
+                name="context retrieval",
+                input={"task": task},
+                output={
+                    "context_sources": [
+                        {
+                            "source_path": context.source_path,
+                            "title": context.title,
+                            "document_type": context.document_type,
+                            "relevance_score": context.relevance_score,
+                            "content": context.content,
+                        }
+                        for context in contexts
+                    ]
+                },
+                latency_ms=elapsed_ms(retrieval_started_at),
+            )
+
         prompt = build_incident_triage_prompt(task, contexts)
-        answer = self.llm_client.generate(prompt)
+        llm_started_at = perf_counter()
+        try:
+            answer = self.llm_client.generate(prompt)
+        except Exception as exc:
+            if trace_recorder:
+                trace_recorder.record(
+                    step_type="llm",
+                    name="LLM prompt/call",
+                    input={"prompt": prompt},
+                    output=safe_error_output(exc),
+                    latency_ms=elapsed_ms(llm_started_at),
+                )
+            raise
+
+        if trace_recorder:
+            trace_recorder.record(
+                step_type="llm",
+                name="LLM prompt/call",
+                input={"prompt": prompt},
+                output={"answer": answer},
+                latency_ms=elapsed_ms(llm_started_at),
+            )
+            trace_recorder.record(
+                step_type="response",
+                name="final response",
+                input={"answer": answer},
+                output={
+                    "answer": answer,
+                    "context_sources": [source.model_dump() for source in context_sources],
+                },
+                latency_ms=0,
+            )
+
         return AgentRunResponse(
             task=task,
             answer=answer,
-            context_sources=[
-                ContextSource(
-                    source_path=context.source_path,
-                    title=context.title,
-                    document_type=context.document_type,
-                    relevance_score=context.relevance_score,
-                )
-                for context in contexts
-            ],
+            context_sources=context_sources,
         )
 
 

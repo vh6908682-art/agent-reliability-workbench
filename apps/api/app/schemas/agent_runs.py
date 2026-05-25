@@ -20,6 +20,8 @@ class AgentRunResponse(BaseModel):
     run_id: int | None = None
     task: str
     answer: str
+    structured_output: dict[str, Any] | None = None
+    validation_status: str | None = None
     context_sources: list[ContextSource]
 
 

@@ -16,7 +16,15 @@ class FakeLLMClient:
 
     def generate(self, prompt: str) -> str:
         self.prompt = prompt
-        return "Likely cause: non-idempotent retry after duplicate key violation."
+        return """
+        {
+          "likely_cause": "Non-idempotent retry after duplicate key violation.",
+          "evidence": ["The row already exists.", "Retries can amplify non-transient failures."],
+          "recommended_next_steps": ["Inspect idempotency key handling."],
+          "prevention": ["Add duplicate-event replay guardrails."],
+          "confidence": "high"
+        }
+        """
 
 
 def test_prompt_includes_task_context_and_expected_sections() -> None:
@@ -32,10 +40,11 @@ def test_prompt_includes_task_context_and_expected_sections() -> None:
 
     assert "Diagnose duplicate key retries" in prompt
     assert "Retries can amplify non-transient failures." in prompt
-    assert "Likely cause" in prompt
-    assert "Evidence" in prompt
-    assert "Recommended next steps" in prompt
-    assert "Prevention or guardrail suggestion" in prompt
+    assert "likely_cause" in prompt
+    assert "evidence" in prompt
+    assert "recommended_next_steps" in prompt
+    assert "prevention" in prompt
+    assert "confidence" in prompt
 
 
 def test_agent_loop_uses_retrieved_context_and_mocked_llm() -> None:
@@ -55,7 +64,18 @@ def test_agent_loop_uses_retrieved_context_and_mocked_llm() -> None:
     response = agent_loop.run("Diagnose duplicate key retry exhaustion")
 
     assert response.task == "Diagnose duplicate key retry exhaustion"
-    assert "non-idempotent retry" in response.answer
+    assert "Non-idempotent retry" in response.answer
+    assert response.validation_status == "valid"
+    assert response.structured_output == {
+        "likely_cause": "Non-idempotent retry after duplicate key violation.",
+        "evidence": [
+            "The row already exists.",
+            "Retries can amplify non-transient failures.",
+        ],
+        "recommended_next_steps": ["Inspect idempotency key handling."],
+        "prevention": ["Add duplicate-event replay guardrails."],
+        "confidence": "high",
+    }
     assert response.context_sources[0].source_path == context.source_path
     assert llm_client.prompt is not None
     assert context.content in llm_client.prompt

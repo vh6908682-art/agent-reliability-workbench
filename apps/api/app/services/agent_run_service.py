@@ -45,6 +45,8 @@ def run_and_persist_incident_triage(
 
     run.status = "completed"
     run.final_answer = response.answer
+    run.structured_output = response.structured_output
+    run.validation_status = response.validation_status
     run.latency_ms = elapsed_ms(started_at)
     db.commit()
     db.refresh(run)
@@ -53,5 +55,7 @@ def run_and_persist_incident_triage(
         run_id=run.id,
         task=response.task,
         answer=response.answer,
+        structured_output=response.structured_output,
+        validation_status=response.validation_status,
         context_sources=response.context_sources,
     )

@@ -6,6 +6,7 @@ from typing import Protocol
 from app.schemas.agent_runs import AgentRunResponse, ContextSource
 from app.services.context_retriever import RetrievedContext, SeedContextRetriever
 from app.services.llm_client import OpenAILLMClient
+from app.services.output_validator import validate_incident_diagnosis
 from app.services.trace_recorder import TraceRecorder, safe_error_output
 
 
@@ -91,6 +92,8 @@ class IncidentTriageAgentLoop:
                 )
             raise
 
+        validation_result = validate_incident_diagnosis(answer)
+
         if trace_recorder:
             trace_recorder.record(
                 step_type="llm",
@@ -105,6 +108,9 @@ class IncidentTriageAgentLoop:
                 input={"answer": answer},
                 output={
                     "answer": answer,
+                    "structured_output": validation_result.structured_output,
+                    "validation_status": validation_result.status,
+                    "validation_errors": validation_result.errors,
                     "context_sources": [source.model_dump() for source in context_sources],
                 },
                 latency_ms=0,
@@ -113,6 +119,8 @@ class IncidentTriageAgentLoop:
         return AgentRunResponse(
             task=task,
             answer=answer,
+            structured_output=validation_result.structured_output,
+            validation_status=validation_result.status,
             context_sources=context_sources,
         )
 
@@ -137,11 +145,20 @@ Task:
 Seeded context:
 {context_blocks}
 
-Write a concise diagnosis for an engineer. Use this structure:
-- Likely cause
-- Evidence
-- Recommended next steps
-- Prevention or guardrail suggestion
+Return only valid JSON matching this exact schema:
+{{
+  "likely_cause": "string",
+  "evidence": ["string"],
+  "recommended_next_steps": ["string"],
+  "prevention": ["string"],
+  "confidence": "low | medium | high"
+}}
+
+Focus the diagnosis on:
+- likely cause
+- evidence from logs or seeded context
+- recommended next steps
+- prevention or guardrail suggestion
 
 Ground the answer in the seeded context. Avoid unsupported certainty."""
 

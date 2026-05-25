@@ -1,39 +1,16 @@
-const navItems = ["Runs", "Traces", "Validation", "Evals", "Guardrails", "Approvals"];
+"use client";
 
-const workbenchCards = [
-  {
-    title: "Run Agent",
-    eyebrow: "Incident triage",
-    description: "Start the developer support workflow for backend failures and inspect each step."
-  },
-  {
-    title: "Trace Viewer",
-    eyebrow: "Tool calls",
-    description: "Review retrieved context, tool inputs, outputs, timing, and execution order."
-  },
-  {
-    title: "Eval Results",
-    eyebrow: "Deterministic checks",
-    description: "See pass/fail outcomes that verify the diagnosis and recommended actions."
-  },
-  {
-    title: "Structured Output",
-    eyebrow: "Schema validation",
-    description: "Confirm the final response matches the contract expected by downstream systems."
-  },
-  {
-    title: "Guardrails",
-    eyebrow: "Policy decisions",
-    description: "Surface blocked actions, risk labels, and safety checks before release."
-  },
-  {
-    title: "Approvals",
-    eyebrow: "Human review",
-    description: "Queue risky mock actions for explicit approval before they can proceed."
-  }
-];
+import { useState } from "react";
+
+import { AgentRunForm } from "../components/AgentRunForm";
+import { AgentRunResult } from "../components/AgentRunResult";
+import type { AgentRunResponse } from "../lib/api";
+
+const navItems = ["Run Agent", "Traces", "Validation", "Evals", "Guardrails", "Approvals"];
 
 export default function Home() {
+  const [result, setResult] = useState<AgentRunResponse | null>(null);
+
   return (
     <main className="min-h-screen bg-panel text-ink">
       <div className="border-b border-slate-200 bg-white">
@@ -54,7 +31,7 @@ export default function Home() {
             {navItems.map((item) => (
               <a
                 className="rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                href={`#${item.toLowerCase()}`}
+                href={`#${item.toLowerCase().replaceAll(" ", "-")}`}
                 key={item}
               >
                 {item}
@@ -64,41 +41,21 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[280px_1fr]">
+      <section className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[320px_1fr]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             MVP Surface
           </h2>
-          <ul className="mt-4 space-y-3 text-sm text-slate-700">
+          <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
             <li>Submit an incident-like backend failure.</li>
-            <li>Inspect the reliability layer behind the answer.</li>
-            <li>Approve or block risky mock actions.</li>
+            <li>Run the golden-path triage agent.</li>
+            <li>Inspect the structured diagnosis returned by the backend.</li>
           </ul>
         </aside>
 
-        <div>
-          <div className="mb-5">
-            <h2 className="text-xl font-semibold text-slate-950">Workbench Areas</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              These placeholders define the first product shell. Backend integration comes later.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {workbenchCards.map((card) => (
-              <article
-                className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
-                id={card.title.split(" ")[0].toLowerCase()}
-                key={card.title}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {card.eyebrow}
-                </p>
-                <h3 className="mt-3 text-lg font-semibold text-slate-950">{card.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
-              </article>
-            ))}
-          </div>
+        <div className="space-y-5">
+          <AgentRunForm onResult={setResult} />
+          <AgentRunResult result={result} />
         </div>
       </section>
     </main>

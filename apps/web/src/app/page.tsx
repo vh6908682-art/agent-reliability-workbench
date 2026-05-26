@@ -53,12 +53,15 @@ export default function Home() {
       <section className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[320px_1fr]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            MVP Surface
+            MVP Demo Guide
           </h2>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-            <li>Submit an incident-like backend failure.</li>
-            <li>Run the golden-path triage agent.</li>
-            <li>Inspect the structured diagnosis returned by the backend.</li>
+            <li>Run an incident or debugging prompt.</li>
+            <li>Inspect the persisted trace and retrieved context.</li>
+            <li>Review validation, guardrail, and approval status.</li>
+            <li>Check latency, token usage, and estimated cost.</li>
+            <li>Reopen previous runs from Recent Runs.</li>
+            <li>Run evals to verify answer quality.</li>
           </ul>
         </aside>
 

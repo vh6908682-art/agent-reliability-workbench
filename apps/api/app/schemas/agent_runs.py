@@ -1,10 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.guardrails.checker import GuardrailResult
+
+ApprovalStatus = Literal["pending_review", "approved", "blocked"]
 
 
 class AgentRunRequest(BaseModel):
@@ -25,7 +27,28 @@ class AgentRunResponse(BaseModel):
     structured_output: dict[str, Any] | None = None
     validation_status: str | None = None
     guardrail_result: GuardrailResult | None = None
+    approval_status: ApprovalStatus | None = None
+    requires_approval: bool = False
+    latency_ms: int | None = None
+    model_name: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    estimated_cost_usd: Decimal | None = None
     context_sources: list[ContextSource]
+
+
+class ApprovalResponse(BaseModel):
+    run_id: int
+    status: ApprovalStatus
+    reviewer_note: str | None
+    requires_approval: bool
+    updated_at: datetime | None
+
+
+class ApprovalUpdateRequest(BaseModel):
+    status: ApprovalStatus
+    reviewer_note: str | None = Field(default=None, max_length=2000)
 
 
 class TraceStepResponse(BaseModel):
@@ -49,8 +72,16 @@ class AgentRunDetailResponse(BaseModel):
     structured_output: dict[str, Any] | None
     validation_status: str | None
     guardrail_result: GuardrailResult | None
+    approval: ApprovalResponse
+    started_at: datetime | None
+    completed_at: datetime | None
     latency_ms: int | None
     cost_usd: Decimal | None
+    estimated_cost_usd: Decimal | None
+    model_name: str | None
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
     created_at: datetime
     updated_at: datetime
     trace_steps: list[TraceStepResponse]

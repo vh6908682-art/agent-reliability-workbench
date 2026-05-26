@@ -32,6 +32,14 @@ function formatCost(value?: string | number | null): string {
   return `$${amount.toFixed(6)}`;
 }
 
+function formatNumber(value?: number | null): string {
+  if (value == null) {
+    return "not returned";
+  }
+
+  return new Intl.NumberFormat().format(value);
+}
+
 function JsonBlock({ value, emptyText }: { value: unknown; emptyText: string }) {
   if (value == null) {
     return <p className="text-sm text-slate-500">{emptyText}</p>;
@@ -130,11 +138,15 @@ export function TraceViewer({ result }: TraceViewerProps) {
           <dl className="mt-3 grid gap-2 text-sm text-slate-700">
             <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Started</dt>
-              <dd className="text-right text-slate-900">{formatDate(detail?.created_at)}</dd>
+              <dd className="text-right text-slate-900">
+                {formatDate(detail?.started_at ?? detail?.created_at)}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Completed</dt>
-              <dd className="text-right text-slate-900">{formatDate(detail?.updated_at)}</dd>
+              <dd className="text-right text-slate-900">
+                {formatDate(detail?.completed_at ?? detail?.updated_at)}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Latency</dt>
@@ -143,8 +155,26 @@ export function TraceViewer({ result }: TraceViewerProps) {
               </dd>
             </div>
             <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Model</dt>
+              <dd className="text-right text-slate-900">{detail?.model_name ?? "not returned"}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Input tokens</dt>
+              <dd className="text-right text-slate-900">{formatNumber(detail?.input_tokens)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Output tokens</dt>
+              <dd className="text-right text-slate-900">{formatNumber(detail?.output_tokens)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Total tokens</dt>
+              <dd className="text-right text-slate-900">{formatNumber(detail?.total_tokens)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Estimated cost</dt>
-              <dd className="text-right text-slate-900">{formatCost(detail?.cost_usd)}</dd>
+              <dd className="text-right text-slate-900">
+                {formatCost(detail?.estimated_cost_usd ?? detail?.cost_usd)}
+              </dd>
             </div>
           </dl>
         </div>

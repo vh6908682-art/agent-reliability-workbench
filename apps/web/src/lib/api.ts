@@ -34,8 +34,15 @@ export type AgentRunDetailResponse = {
   final_answer: string | null;
   structured_output: Record<string, unknown> | null;
   validation_status: string | null;
+  started_at: string | null;
+  completed_at: string | null;
   latency_ms: number | null;
   cost_usd: string | number | null;
+  estimated_cost_usd: string | number | null;
+  model_name: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
   created_at: string;
   updated_at: string;
   trace_steps: TraceStep[];
@@ -47,6 +54,12 @@ export type AgentRunResponse = {
   answer?: string;
   structured_output?: IncidentDiagnosis | Record<string, unknown> | null;
   validation_status?: string | null;
+  latency_ms?: number | null;
+  model_name?: string | null;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  estimated_cost_usd?: string | number | null;
   context_sources?: ContextSource[];
   trace_detail?: AgentRunDetailResponse | null;
   trace_error?: string;

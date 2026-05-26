@@ -6,11 +6,34 @@ from app.db.session import get_db
 from app.guardrails.checker import GuardrailResult
 from app.models.agent_run import AgentRun
 from app.models.trace_step import TraceStep
-from app.schemas.agent_runs import AgentRunDetailResponse, AgentRunRequest, AgentRunResponse
-from app.services.agent_run_service import AgentRunFailedError, run_and_persist_incident_triage
+from app.schemas.agent_runs import (
+    AgentRunDetailResponse,
+    AgentRunRequest,
+    AgentRunResponse,
+    ApprovalResponse,
+    ApprovalUpdateRequest,
+)
+from app.services.agent_run_service import (
+    AgentRunFailedError,
+    approval_response_for_run,
+    get_agent_run_approval,
+    run_and_persist_incident_triage,
+    update_agent_run_approval,
+)
 from app.services.llm_client import LLMClientError, MissingOpenAIAPIKeyError
 
 router = APIRouter()
+
+
+def agent_run_not_found(run_id: int) -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail={
+            "error": "agent_run_not_found",
+            "message": f"Agent run {run_id} was not found",
+            "details": None,
+        },
+    )
 
 
 @router.post("/agent-runs", response_model=AgentRunResponse)
@@ -38,14 +61,7 @@ def create_agent_run(request: AgentRunRequest, db: Session = Depends(get_db)) ->
 def get_agent_run(run_id: int, db: Session = Depends(get_db)) -> AgentRunDetailResponse:
     run = db.get(AgentRun, run_id)
     if run is None:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "agent_run_not_found",
-                "message": f"Agent run {run_id} was not found",
-                "details": None,
-            },
-        )
+        raise agent_run_not_found(run_id)
 
     trace_steps = db.scalars(
         select(TraceStep)
@@ -64,9 +80,42 @@ def get_agent_run(run_id: int, db: Session = Depends(get_db)) -> AgentRunDetailR
             if run.guardrail_result
             else None
         ),
+        approval=approval_response_for_run(run),
+        started_at=run.started_at,
+        completed_at=run.completed_at,
         latency_ms=run.latency_ms,
         cost_usd=run.cost_usd,
+        estimated_cost_usd=run.cost_usd,
+        model_name=run.model_name,
+        input_tokens=run.input_tokens,
+        output_tokens=run.output_tokens,
+        total_tokens=run.total_tokens,
         created_at=run.created_at,
         updated_at=run.updated_at,
         trace_steps=list(trace_steps),
     )
+
+
+@router.get("/agent-runs/{run_id}/approval", response_model=ApprovalResponse)
+def get_approval(run_id: int, db: Session = Depends(get_db)) -> ApprovalResponse:
+    approval = get_agent_run_approval(db, run_id)
+    if approval is None:
+        raise agent_run_not_found(run_id)
+    return approval
+
+
+@router.post("/agent-runs/{run_id}/approval", response_model=ApprovalResponse)
+def update_approval(
+    run_id: int,
+    request: ApprovalUpdateRequest,
+    db: Session = Depends(get_db),
+) -> ApprovalResponse:
+    approval = update_agent_run_approval(
+        db,
+        run_id,
+        request.status,
+        request.reviewer_note,
+    )
+    if approval is None:
+        raise agent_run_not_found(run_id)
+    return approval

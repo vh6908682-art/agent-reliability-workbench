@@ -5,13 +5,20 @@ import { useState } from "react";
 import { AgentRunForm } from "../components/AgentRunForm";
 import { AgentRunResult } from "../components/AgentRunResult";
 import { EvalRunnerPanel } from "../components/EvalRunnerPanel";
+import { RecentRunsPanel } from "../components/RecentRunsPanel";
 import { TraceViewer } from "../components/TraceViewer";
 import type { AgentRunResponse } from "../lib/api";
 
-const navItems = ["Run Agent", "Traces", "Validation", "Evals", "Guardrails", "Approvals"];
+const navItems = ["Run Agent", "Runs", "Traces", "Validation", "Evals", "Guardrails", "Approvals"];
 
 export default function Home() {
   const [result, setResult] = useState<AgentRunResponse | null>(null);
+  const [runsRefreshKey, setRunsRefreshKey] = useState(0);
+
+  function handleResult(nextResult: AgentRunResponse) {
+    setResult(nextResult);
+    setRunsRefreshKey((current) => current + 1);
+  }
 
   return (
     <main className="min-h-screen bg-panel text-ink">
@@ -56,7 +63,12 @@ export default function Home() {
         </aside>
 
         <div className="space-y-5">
-          <AgentRunForm onResult={setResult} />
+          <AgentRunForm onResult={handleResult} />
+          <RecentRunsPanel
+            onSelectRun={setResult}
+            refreshKey={runsRefreshKey}
+            selectedRunId={result?.run_id ?? null}
+          />
           <AgentRunResult result={result} />
           <TraceViewer result={result} />
           <EvalRunnerPanel />

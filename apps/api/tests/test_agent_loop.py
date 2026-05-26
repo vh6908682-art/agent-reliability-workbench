@@ -13,6 +13,10 @@ class FakeRetriever:
 class FakeLLMClient:
     def __init__(self) -> None:
         self.prompt: str | None = None
+        self.last_model_name = "gpt-4o-mini"
+        self.last_input_tokens = 1000
+        self.last_output_tokens = 2000
+        self.last_total_tokens = 3000
 
     def generate(self, prompt: str) -> str:
         self.prompt = prompt
@@ -77,5 +81,10 @@ def test_agent_loop_uses_retrieved_context_and_mocked_llm() -> None:
         "confidence": "high",
     }
     assert response.context_sources[0].source_path == context.source_path
+    assert response.model_name == "gpt-4o-mini"
+    assert response.input_tokens == 1000
+    assert response.output_tokens == 2000
+    assert response.total_tokens == 3000
+    assert response.estimated_cost_usd is not None
     assert llm_client.prompt is not None
     assert context.content in llm_client.prompt

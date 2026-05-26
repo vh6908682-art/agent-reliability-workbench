@@ -8,6 +8,7 @@ from app.schemas.agent_runs import AgentRunResponse, ContextSource
 from app.services.context_retriever import RetrievedContext, SeedContextRetriever
 from app.services.llm_client import OpenAILLMClient
 from app.services.output_validator import validate_incident_diagnosis
+from app.services.pricing import estimate_openai_cost
 from app.services.trace_recorder import TraceRecorder, safe_error_output
 
 
@@ -23,6 +24,14 @@ class ContextRetriever(Protocol):
 
 def elapsed_ms(started_at: float) -> int:
     return int((perf_counter() - started_at) * 1000)
+
+
+def _llm_metric(llm_client: LLMClient, name: str, default: int = 0) -> int:
+    value = getattr(llm_client, name, default)
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return default
 
 
 class IncidentTriageAgentLoop:
@@ -92,6 +101,21 @@ class IncidentTriageAgentLoop:
                     latency_ms=elapsed_ms(llm_started_at),
                 )
             raise
+        model_name = getattr(self.llm_client, "last_model_name", None) or getattr(
+            self.llm_client, "model", None
+        )
+        input_tokens = _llm_metric(self.llm_client, "last_input_tokens")
+        output_tokens = _llm_metric(self.llm_client, "last_output_tokens")
+        total_tokens = _llm_metric(
+            self.llm_client,
+            "last_total_tokens",
+            input_tokens + output_tokens,
+        )
+        if total_tokens == 0:
+            total_tokens = input_tokens + output_tokens
+        estimated_cost_usd = None
+        if model_name:
+            estimated_cost_usd = estimate_openai_cost(model_name, input_tokens, output_tokens)
 
         validation_result = validate_incident_diagnosis(answer)
         guardrail_result = run_guardrail_checks(
@@ -104,7 +128,15 @@ class IncidentTriageAgentLoop:
                 step_type="llm",
                 name="LLM prompt/call",
                 input={"prompt": prompt},
-                output={"answer": answer},
+                output={
+                    "answer": answer,
+                    "model_name": model_name,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": total_tokens,
+                    "estimated_cost_usd": estimated_cost_usd,
+                    # TODO: Replace zeros with provider usage for clients that do not expose it yet.
+                },
                 latency_ms=elapsed_ms(llm_started_at),
             )
             trace_recorder.record(
@@ -128,6 +160,11 @@ class IncidentTriageAgentLoop:
             structured_output=validation_result.structured_output,
             validation_status=validation_result.status,
             guardrail_result=guardrail_result,
+            model_name=model_name,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=estimated_cost_usd,
             context_sources=context_sources,
         )
 

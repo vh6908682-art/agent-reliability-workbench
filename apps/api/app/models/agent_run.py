@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, DateTime, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, JSON, DateTime, Integer, Numeric, String, Text, false, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,7 +27,29 @@ class AgentRun(Base):
     guardrail_result: Mapped[dict | None] = mapped_column(
         JSONB().with_variant(JSON(), "sqlite"), nullable=True
     )
+    approval_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="pending_review", server_default="pending_review"
+    )
+    approval_required: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    approval_reviewer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approval_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    input_tokens: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    output_tokens: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    total_tokens: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
     cost_usd: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

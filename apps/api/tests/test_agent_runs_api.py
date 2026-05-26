@@ -27,6 +27,13 @@ VALID_DIAGNOSIS = {
 
 VALID_DIAGNOSIS_JSON = json.dumps(VALID_DIAGNOSIS)
 
+RISKY_DIAGNOSIS = {
+    **VALID_DIAGNOSIS,
+    "recommended_next_steps": ["Purge the Kafka topic and replay from scratch."],
+}
+
+RISKY_DIAGNOSIS_JSON = json.dumps(RISKY_DIAGNOSIS)
+
 EXPECTED_GUARDRAIL_RESULT = {
     "passed": True,
     "checks": [
@@ -72,11 +79,31 @@ class FakeRetriever:
 
 
 class FakeLLMClient:
+    last_model_name = "gpt-4o-mini"
+    last_input_tokens = 1000
+    last_output_tokens = 2000
+    last_total_tokens = 3000
+
     def generate(self, prompt: str) -> str:
         return VALID_DIAGNOSIS_JSON
 
 
+class RiskyLLMClient:
+    last_model_name = "gpt-4o-mini"
+    last_input_tokens = 1000
+    last_output_tokens = 2000
+    last_total_tokens = 3000
+
+    def generate(self, prompt: str) -> str:
+        return RISKY_DIAGNOSIS_JSON
+
+
 class FencedJSONLLMClient:
+    last_model_name = "gpt-4o-mini"
+    last_input_tokens = 1000
+    last_output_tokens = 2000
+    last_total_tokens = 3000
+
     def generate(self, prompt: str) -> str:
         return f"```json\n{VALID_DIAGNOSIS_JSON}\n```"
 
@@ -135,6 +162,14 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
         "structured_output": VALID_DIAGNOSIS,
         "validation_status": "valid",
         "guardrail_result": EXPECTED_GUARDRAIL_RESULT,
+        "approval_status": "approved",
+        "requires_approval": False,
+        "latency_ms": response_body["latency_ms"],
+        "model_name": "gpt-4o-mini",
+        "input_tokens": 1000,
+        "output_tokens": 2000,
+        "total_tokens": 3000,
+        "estimated_cost_usd": "0.001350",
         "context_sources": [
             {
                 "source_path": "seed/documents/runbooks/duplicate-key-violations.md",
@@ -152,7 +187,18 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
     assert run.structured_output == response_body["structured_output"]
     assert run.validation_status == "valid"
     assert run.guardrail_result == EXPECTED_GUARDRAIL_RESULT
+    assert run.approval_status == "approved"
+    assert run.approval_required is False
+    assert run.approval_reviewer_note is None
+    assert run.approval_updated_at is not None
     assert run.latency_ms is not None
+    assert run.started_at is not None
+    assert run.completed_at is not None
+    assert run.model_name == "gpt-4o-mini"
+    assert run.input_tokens == 1000
+    assert run.output_tokens == 2000
+    assert run.total_tokens == 3000
+    assert str(run.cost_usd) == "0.001350"
 
     trace_steps = db_session.scalars(
         select(TraceStep)
@@ -193,6 +239,20 @@ def test_get_agent_run_returns_metadata_and_ordered_trace_steps(monkeypatch, db_
     assert response_body["structured_output"] == VALID_DIAGNOSIS
     assert response_body["validation_status"] == "valid"
     assert response_body["guardrail_result"] == EXPECTED_GUARDRAIL_RESULT
+    assert response_body["approval"]["run_id"] == run_id
+    assert response_body["approval"]["status"] == "approved"
+    assert response_body["approval"]["requires_approval"] is False
+    assert response_body["approval"]["reviewer_note"] is None
+    assert response_body["approval"]["updated_at"] is not None
+    assert response_body["started_at"] is not None
+    assert response_body["completed_at"] is not None
+    assert response_body["latency_ms"] is not None
+    assert response_body["model_name"] == "gpt-4o-mini"
+    assert response_body["input_tokens"] == 1000
+    assert response_body["output_tokens"] == 2000
+    assert response_body["total_tokens"] == 3000
+    assert response_body["estimated_cost_usd"] == "0.001350"
+    assert response_body["cost_usd"] == "0.001350"
     assert [step["step_index"] for step in response_body["trace_steps"]] == [1, 2, 3]
     assert [step["step_type"] for step in response_body["trace_steps"]] == [
         "retrieval",
@@ -222,11 +282,156 @@ def test_create_agent_run_accepts_fenced_json_output(monkeypatch, db_session) ->
     assert response_body["structured_output"] == VALID_DIAGNOSIS
     assert response_body["validation_status"] == "valid"
     assert response_body["guardrail_result"] == EXPECTED_GUARDRAIL_RESULT
+    assert response_body["approval_status"] == "approved"
+    assert response_body["requires_approval"] is False
 
     run = db_session.get(AgentRun, response_body["run_id"])
     assert run.structured_output == VALID_DIAGNOSIS
     assert run.validation_status == "valid"
     assert run.guardrail_result == EXPECTED_GUARDRAIL_RESULT
+
+
+def test_create_agent_run_sets_pending_review_when_guardrails_require_approval(
+    monkeypatch,
+    db_session,
+) -> None:
+    monkeypatch.setattr(
+        "app.services.agent_loop.SeedContextRetriever",
+        lambda: FakeRetriever(),
+    )
+    monkeypatch.setattr(
+        "app.services.agent_loop.OpenAILLMClient",
+        lambda: RiskyLLMClient(),
+    )
+
+    response = client.post(
+        "/agent-runs",
+        json={"task": "Diagnose duplicate key retry exhaustion"},
+    )
+
+    assert response.status_code == 200
+    response_body = response.json()
+    assert response_body["guardrail_result"]["passed"] is False
+    assert response_body["approval_status"] == "pending_review"
+    assert response_body["requires_approval"] is True
+
+    run = db_session.get(AgentRun, response_body["run_id"])
+    assert run.approval_status == "pending_review"
+    assert run.approval_required is True
+    assert run.approval_updated_at is not None
+
+
+def test_get_approval_returns_current_status(monkeypatch, db_session) -> None:
+    monkeypatch.setattr(
+        "app.services.agent_loop.SeedContextRetriever",
+        lambda: FakeRetriever(),
+    )
+    monkeypatch.setattr(
+        "app.services.agent_loop.OpenAILLMClient",
+        lambda: RiskyLLMClient(),
+    )
+    run_id = client.post(
+        "/agent-runs",
+        json={"task": "Diagnose duplicate key retry exhaustion"},
+    ).json()["run_id"]
+
+    response = client.get(f"/agent-runs/{run_id}/approval")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "run_id": run_id,
+        "status": "pending_review",
+        "reviewer_note": None,
+        "requires_approval": True,
+        "updated_at": response.json()["updated_at"],
+    }
+    assert response.json()["updated_at"] is not None
+
+
+def test_approve_agent_run_updates_approval_status(monkeypatch, db_session) -> None:
+    monkeypatch.setattr(
+        "app.services.agent_loop.SeedContextRetriever",
+        lambda: FakeRetriever(),
+    )
+    monkeypatch.setattr(
+        "app.services.agent_loop.OpenAILLMClient",
+        lambda: RiskyLLMClient(),
+    )
+    run_id = client.post(
+        "/agent-runs",
+        json={"task": "Diagnose duplicate key retry exhaustion"},
+    ).json()["run_id"]
+
+    response = client.post(
+        f"/agent-runs/{run_id}/approval",
+        json={
+            "status": "approved",
+            "reviewer_note": "Recommendation looks safe for the mock runbook.",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "approved"
+    assert response.json()["reviewer_note"] == "Recommendation looks safe for the mock runbook."
+    assert response.json()["requires_approval"] is True
+    assert response.json()["updated_at"] is not None
+
+    run = db_session.get(AgentRun, run_id)
+    assert run.approval_status == "approved"
+    assert run.approval_reviewer_note == "Recommendation looks safe for the mock runbook."
+
+
+def test_block_agent_run_updates_approval_status(monkeypatch, db_session) -> None:
+    monkeypatch.setattr(
+        "app.services.agent_loop.SeedContextRetriever",
+        lambda: FakeRetriever(),
+    )
+    monkeypatch.setattr(
+        "app.services.agent_loop.OpenAILLMClient",
+        lambda: RiskyLLMClient(),
+    )
+    run_id = client.post(
+        "/agent-runs",
+        json={"task": "Diagnose duplicate key retry exhaustion"},
+    ).json()["run_id"]
+
+    response = client.post(
+        f"/agent-runs/{run_id}/approval",
+        json={
+            "status": "blocked",
+            "reviewer_note": "Risky destructive action should not be recommended.",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "blocked"
+    assert response.json()["reviewer_note"] == "Risky destructive action should not be recommended."
+
+    run = db_session.get(AgentRun, run_id)
+    assert run.approval_status == "blocked"
+    assert run.approval_reviewer_note == "Risky destructive action should not be recommended."
+
+
+def test_update_approval_rejects_invalid_status(monkeypatch, db_session) -> None:
+    monkeypatch.setattr(
+        "app.services.agent_loop.SeedContextRetriever",
+        lambda: FakeRetriever(),
+    )
+    monkeypatch.setattr(
+        "app.services.agent_loop.OpenAILLMClient",
+        lambda: FakeLLMClient(),
+    )
+    run_id = client.post(
+        "/agent-runs",
+        json={"task": "Diagnose duplicate key retry exhaustion"},
+    ).json()["run_id"]
+
+    response = client.post(
+        f"/agent-runs/{run_id}/approval",
+        json={"status": "needs_manager", "reviewer_note": "unsupported state"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_failed_agent_run_is_persisted_with_safe_trace_output(monkeypatch, db_session) -> None:
@@ -254,7 +459,12 @@ def test_failed_agent_run_is_persisted_with_safe_trace_output(monkeypatch, db_se
     run = db_session.scalar(select(AgentRun))
     assert run.status == "failed"
     assert run.final_answer is None
+    assert run.completed_at is not None
     assert run.latency_ms is not None
+    assert run.input_tokens == 0
+    assert run.output_tokens == 0
+    assert run.total_tokens == 0
+    assert str(run.cost_usd) == "0.000000"
 
     trace_steps = db_session.scalars(
         select(TraceStep)

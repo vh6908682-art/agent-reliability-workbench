@@ -24,6 +24,9 @@ class AgentRun(Base):
         JSONB().with_variant(JSON(), "sqlite"), nullable=True
     )
     validation_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    guardrail_result: Mapped[dict | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cost_usd: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

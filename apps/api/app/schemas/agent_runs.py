@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.guardrails.checker import GuardrailResult
+
 
 class AgentRunRequest(BaseModel):
     task: str = Field(min_length=1)
@@ -22,6 +24,7 @@ class AgentRunResponse(BaseModel):
     answer: str
     structured_output: dict[str, Any] | None = None
     validation_status: str | None = None
+    guardrail_result: GuardrailResult | None = None
     context_sources: list[ContextSource]
 
 
@@ -45,6 +48,7 @@ class AgentRunDetailResponse(BaseModel):
     final_answer: str | None
     structured_output: dict[str, Any] | None
     validation_status: str | None
+    guardrail_result: GuardrailResult | None
     latency_ms: int | None
     cost_usd: Decimal | None
     created_at: datetime

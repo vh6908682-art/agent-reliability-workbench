@@ -3,6 +3,7 @@ from __future__ import annotations
 from time import perf_counter
 from typing import Protocol
 
+from app.guardrails.checker import run_guardrail_checks
 from app.schemas.agent_runs import AgentRunResponse, ContextSource
 from app.services.context_retriever import RetrievedContext, SeedContextRetriever
 from app.services.llm_client import OpenAILLMClient
@@ -93,6 +94,10 @@ class IncidentTriageAgentLoop:
             raise
 
         validation_result = validate_incident_diagnosis(answer)
+        guardrail_result = run_guardrail_checks(
+            validation_result.structured_output,
+            validation_result.status,
+        )
 
         if trace_recorder:
             trace_recorder.record(
@@ -111,6 +116,7 @@ class IncidentTriageAgentLoop:
                     "structured_output": validation_result.structured_output,
                     "validation_status": validation_result.status,
                     "validation_errors": validation_result.errors,
+                    "guardrail_result": guardrail_result.model_dump(),
                     "context_sources": [source.model_dump() for source in context_sources],
                 },
                 latency_ms=0,
@@ -121,6 +127,7 @@ class IncidentTriageAgentLoop:
             answer=answer,
             structured_output=validation_result.structured_output,
             validation_status=validation_result.status,
+            guardrail_result=guardrail_result,
             context_sources=context_sources,
         )
 

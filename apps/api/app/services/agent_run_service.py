@@ -27,6 +27,7 @@ def run_and_persist_incident_triage(
         final_answer=None,
         structured_output=None,
         validation_status=None,
+        guardrail_result=None,
     )
     db.add(run)
     db.flush()
@@ -47,6 +48,9 @@ def run_and_persist_incident_triage(
     run.final_answer = response.answer
     run.structured_output = response.structured_output
     run.validation_status = response.validation_status
+    run.guardrail_result = (
+        response.guardrail_result.model_dump() if response.guardrail_result else None
+    )
     run.latency_ms = elapsed_ms(started_at)
     db.commit()
     db.refresh(run)
@@ -57,5 +61,6 @@ def run_and_persist_incident_triage(
         answer=response.answer,
         structured_output=response.structured_output,
         validation_status=response.validation_status,
+        guardrail_result=response.guardrail_result,
         context_sources=response.context_sources,
     )

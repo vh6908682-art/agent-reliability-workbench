@@ -10,6 +10,7 @@ from app.schemas.agent_runs import (
     AgentRunDetailResponse,
     AgentRunRequest,
     AgentRunResponse,
+    AgentRunSummaryResponse,
     ApprovalResponse,
     ApprovalUpdateRequest,
 )
@@ -17,6 +18,7 @@ from app.services.agent_run_service import (
     AgentRunFailedError,
     approval_response_for_run,
     get_agent_run_approval,
+    list_recent_agent_runs,
     run_and_persist_incident_triage,
     update_agent_run_approval,
 )
@@ -55,6 +57,11 @@ def create_agent_run(request: AgentRunRequest, db: Session = Depends(get_db)) ->
                 "details": None,
             },
         ) from exc
+
+
+@router.get("/agent-runs", response_model=list[AgentRunSummaryResponse])
+def list_agent_runs(db: Session = Depends(get_db)) -> list[AgentRunSummaryResponse]:
+    return list_recent_agent_runs(db)
 
 
 @router.get("/agent-runs/{run_id}", response_model=AgentRunDetailResponse)

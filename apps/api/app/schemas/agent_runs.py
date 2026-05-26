@@ -51,6 +51,24 @@ class ApprovalUpdateRequest(BaseModel):
     reviewer_note: str | None = Field(default=None, max_length=2000)
 
 
+class AgentRunSummaryResponse(BaseModel):
+    run_id: int
+    task: str
+    status: str
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    latency_ms: int | None
+    model_name: str | None
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    estimated_cost_usd: Decimal | None
+    guardrail_status: str | None
+    approval_status: ApprovalStatus | None
+    requires_approval: bool
+
+
 class TraceStepResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -34,6 +34,17 @@ export type AgentRunDetailResponse = {
   final_answer: string | null;
   structured_output: Record<string, unknown> | null;
   validation_status: string | null;
+  guardrail_result?: {
+    passed?: boolean;
+    checks?: unknown[];
+  } | null;
+  approval?: {
+    run_id: number;
+    status: string;
+    reviewer_note: string | null;
+    requires_approval: boolean;
+    updated_at: string | null;
+  };
   started_at: string | null;
   completed_at: string | null;
   latency_ms: number | null;
@@ -48,12 +59,33 @@ export type AgentRunDetailResponse = {
   trace_steps: TraceStep[];
 };
 
+export type AgentRunSummaryResponse = {
+  run_id: number;
+  task: string;
+  status: string;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  latency_ms: number | null;
+  model_name: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: string | number | null;
+  guardrail_status: string | null;
+  approval_status: string | null;
+  requires_approval: boolean;
+};
+
 export type AgentRunResponse = {
   run_id?: number | null;
   task?: string;
   answer?: string;
   structured_output?: IncidentDiagnosis | Record<string, unknown> | null;
   validation_status?: string | null;
+  guardrail_result?: AgentRunDetailResponse["guardrail_result"];
+  approval_status?: string | null;
+  requires_approval?: boolean;
   latency_ms?: number | null;
   model_name?: string | null;
   input_tokens?: number;
@@ -147,6 +179,17 @@ export async function getAgentRun(runId: number): Promise<AgentRunDetailResponse
   }
 
   return body as AgentRunDetailResponse;
+}
+
+export async function listAgentRuns(): Promise<AgentRunSummaryResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/agent-runs`);
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status, "Recent runs request failed"));
+  }
+
+  return body as AgentRunSummaryResponse[];
 }
 
 export async function runEvals(): Promise<EvalRunSummary> {

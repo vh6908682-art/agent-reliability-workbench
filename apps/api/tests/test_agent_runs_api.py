@@ -1,4 +1,6 @@
 import json
+from datetime import UTC, datetime
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -259,6 +261,80 @@ def test_get_agent_run_returns_metadata_and_ordered_trace_steps(monkeypatch, db_
         "llm",
         "response",
     ]
+
+
+def test_list_agent_runs_returns_recent_run_summaries(db_session) -> None:
+    older_run = AgentRun(
+        task="Older duplicate key failure",
+        status="completed",
+        final_answer="Older answer",
+        structured_output=None,
+        validation_status="valid",
+        guardrail_result={"passed": True, "checks": []},
+        approval_status="approved",
+        approval_required=False,
+        approval_reviewer_note=None,
+        approval_updated_at=datetime(2026, 1, 1, 12, 3, tzinfo=UTC),
+        started_at=datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+        completed_at=datetime(2026, 1, 1, 12, 0, 1, tzinfo=UTC),
+        latency_ms=1000,
+        model_name="gpt-4o-mini",
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
+        cost_usd=Decimal("0.000123"),
+        created_at=datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 1, 1, 12, 0, 1, tzinfo=UTC),
+    )
+    newer_run = AgentRun(
+        task="Newer risky retry exhaustion",
+        status="completed",
+        final_answer="Newer answer",
+        structured_output=None,
+        validation_status="valid",
+        guardrail_result={"passed": False, "checks": []},
+        approval_status="pending_review",
+        approval_required=True,
+        approval_reviewer_note=None,
+        approval_updated_at=datetime(2026, 1, 1, 12, 5, tzinfo=UTC),
+        started_at=datetime(2026, 1, 1, 12, 5, tzinfo=UTC),
+        completed_at=None,
+        latency_ms=None,
+        model_name=None,
+        input_tokens=0,
+        output_tokens=0,
+        total_tokens=0,
+        cost_usd=None,
+        created_at=datetime(2026, 1, 1, 12, 5, tzinfo=UTC),
+        updated_at=datetime(2026, 1, 1, 12, 5, tzinfo=UTC),
+    )
+    db_session.add_all([older_run, newer_run])
+    db_session.commit()
+
+    response = client.get("/agent-runs")
+
+    assert response.status_code == 200
+    response_body = response.json()
+    assert [run["run_id"] for run in response_body] == [newer_run.id, older_run.id]
+    assert response_body[0] == {
+        "run_id": newer_run.id,
+        "task": "Newer risky retry exhaustion",
+        "status": "completed",
+        "created_at": "2026-01-01T12:05:00",
+        "started_at": "2026-01-01T12:05:00",
+        "completed_at": None,
+        "latency_ms": None,
+        "model_name": None,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost_usd": None,
+        "guardrail_status": "failed",
+        "approval_status": "pending_review",
+        "requires_approval": True,
+    }
+    assert response_body[1]["estimated_cost_usd"] == "0.000123"
+    assert response_body[1]["guardrail_status"] == "passed"
 
 
 def test_create_agent_run_accepts_fenced_json_output(monkeypatch, db_session) -> None:

@@ -5,11 +5,17 @@ from decimal import Decimal
 from time import perf_counter
 from typing import cast
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.guardrails.checker import GuardrailResult
 from app.models.agent_run import AgentRun
-from app.schemas.agent_runs import ApprovalResponse, ApprovalStatus, AgentRunResponse
+from app.schemas.agent_runs import (
+    AgentRunResponse,
+    AgentRunSummaryResponse,
+    ApprovalResponse,
+    ApprovalStatus,
+)
 from app.services.agent_loop import IncidentTriageAgentLoop, elapsed_ms
 from app.services.trace_recorder import TraceRecorder, public_error_message
 
@@ -40,6 +46,33 @@ def approval_response_for_run(run: AgentRun) -> ApprovalResponse:
     )
 
 
+def guardrail_status_for_run(run: AgentRun) -> str | None:
+    if run.guardrail_result is None:
+        return None
+    result = GuardrailResult.model_validate(run.guardrail_result)
+    return "passed" if result.passed else "failed"
+
+
+def summary_response_for_run(run: AgentRun) -> AgentRunSummaryResponse:
+    return AgentRunSummaryResponse(
+        run_id=run.id,
+        task=run.task,
+        status=run.status,
+        created_at=run.created_at,
+        started_at=run.started_at,
+        completed_at=run.completed_at,
+        latency_ms=run.latency_ms,
+        model_name=run.model_name,
+        input_tokens=run.input_tokens,
+        output_tokens=run.output_tokens,
+        total_tokens=run.total_tokens,
+        estimated_cost_usd=run.cost_usd,
+        guardrail_status=guardrail_status_for_run(run),
+        approval_status=cast(ApprovalStatus, run.approval_status) if run.approval_status else None,
+        requires_approval=run.approval_required,
+    )
+
+
 def cost_decimal(value: Decimal | float | int | None) -> Decimal | None:
     if value is None:
         return None
@@ -51,6 +84,15 @@ def get_agent_run_approval(db: Session, run_id: int) -> ApprovalResponse | None:
     if run is None:
         return None
     return approval_response_for_run(run)
+
+
+def list_recent_agent_runs(db: Session, limit: int = 20) -> list[AgentRunSummaryResponse]:
+    runs = db.scalars(
+        select(AgentRun)
+        .order_by(AgentRun.created_at.desc(), AgentRun.id.desc())
+        .limit(limit)
+    ).all()
+    return [summary_response_for_run(run) for run in runs]
 
 
 def update_agent_run_approval(

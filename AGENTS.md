@@ -1,139 +1,148 @@
 # AGENTS.md
 
-## Project
+This file gives implementation agents the minimum context needed to work safely in this repo.
 
-This repository is AgentOps Workbench: a developer platform for running, tracing, evaluating, debugging, and safely releasing tool-using LLM agents.
+For deeper product, architecture, benchmark, and workflow details, read the linked docs instead of adding long explanations here.
 
-The project is intentionally scoped around one serious golden path:
+## Project Identity
 
-Developer Support / Incident Triage Agent
+This repo is **Agent Reliability Workbench**.
 
-A user submits an incident-like backend failure, such as:
+It is a benchmarking, observability, and governance platform for tool-using AI agents.
 
-> A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.
+The current incident-investigation flow is the benchmark environment. It is used to evaluate whether an agent can investigate production-like incidents, use tools safely, produce evidence-backed diagnoses, pass validation, respect guardrails, and generate repeatable eval results.
 
-The system should show not only the final answer, but the full reliability layer behind it:
-- tool calls
-- retrieved context
-- structured output validation
-- eval results
-- trace events
-- latency
-- token usage
-- estimated cost
-- guardrail decisions
-- approval requirements for risky actions
+Do not treat this project as only an incident triage demo.
 
-The project thesis is:
+## Source of Truth Docs
 
-> Most AI agent demos show the answer. AgentOps Workbench shows the production layer behind the answer.
+Read the most relevant docs before making changes:
 
-## Target positioning
+- `README.md` — public project overview and local setup
+- `docs/PROJECT_VISION.md` — product direction and positioning
+- `docs/architecture/system-overview.md` — current system architecture
+- `docs/architecture/data-model.md` — core entities and persistence model
+- `docs/architecture/api-contract.md` — API shape and backend/frontend contract
+- `docs/BENCHMARK_SPEC.md` — benchmark scenarios, tool-using agent task design, and incident environment
+- `docs/EVAL_METHODOLOGY.md` — evaluation strategy, scoring, checks, and expected behavior
+- `docs/ROADMAP.md` — staged development plan beyond MVP
+- `docs/architecture/codex-workflow.md` — how implementation tickets should be executed
+- `docs/architecture/demo-script.md` — demo flow and narrative
 
-This project is optimized for:
-- AI Engineer
-- LLM Application Engineer
-- Agentic AI Engineer
-- Applied AI Engineer
-- AI Platform Engineer
-- Backend Engineer, AI Products
-- GenAI Engineer
+If a document does not exist yet, do not invent large architecture changes. Keep the implementation aligned with existing code and the current ticket.
 
-It is not trying to be:
-- a frontier ML research project
-- a model training platform
-- a full enterprise SaaS clone
-- a generic chatbot app
+## Working Rules
 
-## MVP philosophy
+- Implement only the current ticket or explicit user request.
+- Keep changes small and focused.
+- Do not refactor unrelated files.
+- Do not rename major concepts without explicit instruction.
+- Do not silently change API contracts.
+- Do not bloat `AGENTS.md`; add deeper explanations to the appropriate doc instead.
+- Preserve the current MVP behavior unless the ticket explicitly changes it.
+- Prefer deterministic behavior for benchmark, validation, guardrail, and eval logic.
+- Treat eval cases and seed scenarios as product-critical, not test-only fixtures.
 
-Build one cohesive platform, but implement it piece by piece.
+## Current Product Direction
 
-Do not build the entire platform in one task.
+The platform should support:
 
-The implementation order is:
+- repeatable agent benchmark scenarios
+- traceable tool-using agent runs
+- structured outputs
+- validation and guardrails
+- approval workflows for risky recommendations
+- latency, token, and cost visibility
+- recent run inspection
+- deterministic eval runs
+- future scenario expansion beyond the initial Kafka incident
 
-1. Foundation
-2. Runs and traces
-3. Structured output validation
-4. Typed tool registry
-5. Mock incident triage agent
-6. Guardrails and approval
-7. Deterministic eval engine
-8. RAG and pgvector
-9. Frontend dashboard polish
-10. Demo, README, screenshots, and resume assets
+The goal is to make agent behavior observable, comparable, and governable.
 
-## Tech stack
+## Implementation Standards
 
 Backend:
-- Python
+
 - FastAPI
 - Pydantic
 - SQLAlchemy
 - Alembic
 - PostgreSQL
-- pgvector later
+- Deterministic services where possible
+- Tests for API/service behavior when backend logic changes
 
 Frontend:
+
 - Next.js
 - React
 - TypeScript
 - Tailwind
-- shadcn/ui later
+- Keep UI changes practical and demo-focused
+- Preserve typed API contracts
 
-Local infrastructure:
-- Docker Compose
-- Postgres
-- GitHub Actions
+General:
 
-LLM provider:
-- OpenAI first
-- Anthropic later only if explicitly requested
+- Keep naming consistent.
+- Prefer clear domain language over generic abstractions.
+- Avoid speculative production features unless requested by the ticket.
+- Favor simple implementation over cleverness.
 
-Orchestration:
-- Start with a simple custom agent loop.
-- Add LangGraph later only if the core architecture is already clean.
+## Verification
 
-## Engineering rules
+Run the relevant checks for the files changed.
 
-Follow these rules for every code change:
+Common commands:
 
-- Keep diffs small and reviewable.
-- Implement one ticket at a time.
-- Do not modify unrelated files.
-- Do not introduce new dependencies unless the ticket requires them.
-- Explain any new dependency briefly.
-- Prefer simple, explicit code over clever abstractions.
-- Keep route handlers thin.
-- Put business logic in service modules.
-- Use typed schemas for request and response payloads.
-- Validate tool inputs and outputs.
-- Add or update tests for every behavior change.
-- Do not silently change existing behavior.
-- Do not add auth, billing, Kubernetes, real Slack/Jira integrations, or multi-tenancy unless explicitly requested.
+Backend:
 
-## Safety and secrets
+    cd apps/api
+    python -m pytest
 
-Never read, print, modify, or commit real secret files.
+Frontend:
 
-Do not commit:
-- .env
-- API keys
-- database passwords
-- private work code
-- customer data
-- proprietary company documents
+    cd apps/web
+    npm run typecheck
+    npm run build
 
-Use `.env.example` for documented environment variables.
+If a command fails because of environment setup, report the exact failure and avoid unrelated fixes.
 
-The MVP must use mock tools for external write actions.
+## Ticket Workflow
 
-High-risk actions such as `create_ticket_mock` must require approval.
+Each implementation ticket should be narrow.
 
-## Backend structure
+A good ticket includes:
 
-Backend code lives in:
+- goal
+- files likely to change
+- files that must not change
+- exact expected behavior
+- verification commands
+- constraints and non-goals
 
-```text
-apps/api/app/
+Do not expand a ticket just because related improvements are visible.
+
+## Documentation Rule
+
+When adding durable project knowledge:
+
+- use `README.md` only for public-facing summary and setup
+- use `docs/PROJECT_VISION.md` for product direction
+- use `docs/architecture/*` for technical design
+- use `docs/BENCHMARK_SPEC.md` for benchmark scenario design
+- use `docs/EVAL_METHODOLOGY.md` for scoring and checks
+- use `docs/ROADMAP.md` for planned future phases
+- keep `AGENTS.md` short
+
+## Non-Goals Unless Explicitly Requested
+
+Do not add or rewrite these unless the ticket asks for it:
+
+- full multi-agent orchestration
+- LangGraph migration
+- authentication
+- cloud deployment
+- billing
+- large UI redesign
+- unrelated incident domains
+- resume/blog/marketing copy
+- broad refactors

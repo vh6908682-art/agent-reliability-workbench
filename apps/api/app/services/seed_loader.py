@@ -118,11 +118,16 @@ def load_seed_data(db: Session, seed_root: Path | None = None) -> SeedLoadSummar
         existing = db.scalar(select(EvalCase).where(EvalCase.name == name))
         expected_signals = {
             "source_id": eval_case.get("id"),
+            "category": eval_case.get("category"),
+            "difficulty": eval_case.get("difficulty"),
+            "risk_level": eval_case.get("risk_level"),
+            "expected_capability": eval_case.get("expected_capability"),
+            "workflow_tags": eval_case.get("workflow_tags", []),
             "expected_keywords": eval_case.get("expected_keywords", []),
             "expected_failure_modes": eval_case.get("expected_failure_modes", []),
             "minimum_score": eval_case.get("minimum_score"),
         }
-        tags = eval_case.get("tags", ["incident-triage"])
+        tags = eval_case.get("tags", eval_case.get("workflow_tags", ["incident-triage"]))
 
         if existing is None:
             db.add(

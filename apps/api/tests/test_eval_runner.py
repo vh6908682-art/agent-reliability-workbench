@@ -60,8 +60,33 @@ def test_load_eval_cases_from_seed_json() -> None:
 
     assert [case.case_id for case in cases] == ["incident-triage-001"]
     assert cases[0].name == "Kafka duplicate key retry exhaustion"
+    assert cases[0].category == "incident_investigation"
+    assert cases[0].difficulty == "medium"
+    assert cases[0].risk_level == "medium"
+    assert cases[0].expected_capability == "evidence_based_root_cause_analysis"
+    assert cases[0].workflow_tags == [
+        "kafka",
+        "spring-batch",
+        "duplicate-key",
+        "retry-exhaustion",
+        "backend-data-pipeline",
+    ]
     assert "duplicate key" in cases[0].expected_keywords
     assert cases[0].minimum_score == 70
+
+
+def test_eval_case_taxonomy_fields_are_optional_for_older_data() -> None:
+    case = EvalCase(
+        case_id="case-1",
+        name="Legacy eval",
+        task="Diagnose incident",
+    )
+
+    assert case.category is None
+    assert case.difficulty is None
+    assert case.risk_level is None
+    assert case.expected_capability is None
+    assert case.workflow_tags == []
 
 
 def test_run_eval_case_passes_with_valid_structured_output() -> None:
@@ -72,6 +97,11 @@ def test_run_eval_case_passes_with_valid_structured_output() -> None:
 
     assert agent_loop.tasks == [case.task]
     assert result.case_id == "case-1"
+    assert result.category == "incident_investigation"
+    assert result.difficulty == "medium"
+    assert result.risk_level == "medium"
+    assert result.expected_capability == "evidence_based_root_cause_analysis"
+    assert result.workflow_tags == ["kafka", "duplicate-key"]
     assert result.passed is True
     assert result.score == 100
     assert {check.name: check.passed for check in result.checks} == {
@@ -224,6 +254,11 @@ def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
             {
                 "case_id": "case-1",
                 "name": "Passing case",
+                "category": None,
+                "difficulty": None,
+                "risk_level": None,
+                "expected_capability": None,
+                "workflow_tags": [],
                 "passed": True,
                 "score": 100,
                 "checks": [
@@ -243,6 +278,11 @@ def _case(expected_keywords: list[str]) -> EvalCase:
         case_id="case-1",
         name="Duplicate key eval",
         task="Diagnose duplicate key retry exhaustion",
+        category="incident_investigation",
+        difficulty="medium",
+        risk_level="medium",
+        expected_capability="evidence_based_root_cause_analysis",
+        workflow_tags=["kafka", "duplicate-key"],
         expected_keywords=expected_keywords,
         minimum_score=70,
     )

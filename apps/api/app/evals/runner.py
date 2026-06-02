@@ -24,6 +24,10 @@ class EvalCase(BaseModel):
     risk_level: str | None = None
     expected_capability: str | None = None
     workflow_tags: list[str] = Field(default_factory=list)
+    mock_evidence: list[str] = Field(default_factory=list)
+    expected_diagnosis: str | None = None
+    expected_evidence: list[str] = Field(default_factory=list)
+    safe_next_steps: list[str] = Field(default_factory=list)
     expected_keywords: list[str] = Field(default_factory=list)
     expected_failure_modes: list[str] = Field(default_factory=list)
     minimum_score: int = 70
@@ -104,7 +108,7 @@ class DeterministicEvalLLMClient:
 
     def generate(self, prompt: str) -> str:
         normalized_prompt = prompt.lower()
-        if "duplicate key" in normalized_prompt and "retry" in normalized_prompt:
+        if "duplicate key violation and retry exhaustion" in normalized_prompt:
             return json.dumps(
                 {
                     "likely_cause": (
@@ -145,6 +149,113 @@ class DeterministicEvalLLMClient:
                         "Log constraint name, customer id, event id, and retry count.",
                     ],
                     "confidence": "high",
+                }
+            )
+
+        if "missing required payload field" in normalized_prompt:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The message is failing payload validation because the incoming "
+                        "payload is missing required field customer_id before normal "
+                        "processing can complete."
+                    ),
+                    "evidence": [
+                        (
+                            "The mock log shows validation failed because customer_id is "
+                            "a missing required field."
+                        ),
+                        (
+                            "The payload sample includes event_id, event_type, changed_fields, "
+                            "and email, but does not include customer_id."
+                        ),
+                        (
+                            "The schema evidence says customer_id is required before "
+                            "the consumer processes the event."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Quarantine or reject the malformed payload.",
+                        "Notify the upstream producer team to restore customer_id.",
+                        (
+                            "Improve validation error reporting, and do not mutate "
+                            "production data without approval."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add producer-side contract tests for required payload fields.",
+                        "Alert on repeated validation failures by missing field name.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "schema version" in normalized_prompt or "schemaversion" in normalized_prompt:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The incident is a schema version mismatch: the producer is "
+                        "sending schemaVersion 3 while the consumer supports versions "
+                        "1 and 2, so the consumer cannot parse the payload correctly."
+                    ),
+                    "evidence": [
+                        (
+                            "The mock log reports unsupported schemaVersion=3 and "
+                            "supported versions 1 and 2."
+                        ),
+                        "The payload sample contains schemaVersion 3.",
+                        (
+                            "The service config shows the consumer supported versions "
+                            "are 1 and 2."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Confirm the expected schema versions with producer and consumer owners.",
+                        "Coordinate the producer and consumer rollout.",
+                        (
+                            "Route incompatible messages to DLQ or quarantine and "
+                            "avoid risky production changes without approval."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add deployment checks that block unsupported producer schema versions.",
+                        "Monitor schema contract mismatch failures by version.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "downstream timeout" in normalized_prompt or "timeout failures" in normalized_prompt:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The consumer is delayed by repeated downstream timeout failures "
+                        "calling profile-service, causing retries and retry exhaustion."
+                    ),
+                    "evidence": [
+                        "The mock log shows a downstream timeout calling profile-service.",
+                        (
+                            "The mock log shows retry exhaustion after four "
+                            "profile-service timeout failures."
+                        ),
+                        (
+                            "The service config shows profile-service timeout and "
+                            "retry configuration values."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Verify downstream service health for profile-service.",
+                        "Check timeout and retry configuration for the dependency.",
+                        (
+                            "Escalate to the dependency owner if degradation is confirmed, "
+                            "and avoid high-risk remediation without approval."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add alerts for dependency timeout rates and retry exhaustion.",
+                        "Review circuit breaker and backoff settings for downstream calls.",
+                    ],
+                    "confidence": "medium",
                 }
             )
 
@@ -211,6 +322,10 @@ def _parse_eval_case(raw_case: dict[str, Any]) -> EvalCase:
         risk_level=raw_case.get("risk_level"),
         expected_capability=raw_case.get("expected_capability"),
         workflow_tags=raw_case.get("workflow_tags", []),
+        mock_evidence=raw_case.get("mock_evidence", []),
+        expected_diagnosis=raw_case.get("expected_diagnosis"),
+        expected_evidence=raw_case.get("expected_evidence", []),
+        safe_next_steps=raw_case.get("safe_next_steps", []),
         expected_keywords=raw_case.get("expected_keywords", []),
         expected_failure_modes=raw_case.get("expected_failure_modes", []),
         minimum_score=raw_case.get("minimum_score", 70),

@@ -58,7 +58,12 @@ class FakeAgentLoop:
 def test_load_eval_cases_from_seed_json() -> None:
     cases = load_eval_cases()
 
-    assert [case.case_id for case in cases] == ["incident-triage-001"]
+    assert [case.case_id for case in cases] == [
+        "incident-triage-001",
+        "incident-triage-002",
+        "incident-triage-003",
+        "incident-triage-004",
+    ]
     assert cases[0].name == "Kafka duplicate key retry exhaustion"
     assert cases[0].category == "incident_investigation"
     assert cases[0].difficulty == "medium"
@@ -75,6 +80,63 @@ def test_load_eval_cases_from_seed_json() -> None:
     assert cases[0].minimum_score == 70
 
 
+def test_new_seeded_eval_cases_include_required_benchmark_fields() -> None:
+    cases = {case.case_id: case for case in load_eval_cases()}
+
+    expected_cases = {
+        "incident-triage-002": {
+            "name": "Missing required payload field",
+            "difficulty": "easy",
+            "risk_level": "low",
+            "expected_capability": "payload_validation_failure_detection",
+            "workflow_tags": [
+                "payload-validation",
+                "missing-field",
+                "backend-data-pipeline",
+            ],
+        },
+        "incident-triage-003": {
+            "name": "Schema version mismatch",
+            "difficulty": "medium",
+            "risk_level": "medium",
+            "expected_capability": "schema_contract_mismatch_detection",
+            "workflow_tags": [
+                "schema-version",
+                "contract-mismatch",
+                "payload-validation",
+                "backend-data-pipeline",
+            ],
+        },
+        "incident-triage-004": {
+            "name": "Downstream timeout",
+            "difficulty": "medium",
+            "risk_level": "medium",
+            "expected_capability": "downstream_dependency_failure_analysis",
+            "workflow_tags": [
+                "downstream-timeout",
+                "dependency-failure",
+                "retry",
+                "backend-service",
+            ],
+        },
+    }
+
+    for case_id, expected in expected_cases.items():
+        case = cases[case_id]
+        assert case.name == expected["name"]
+        assert case.category == "incident_investigation"
+        assert case.difficulty == expected["difficulty"]
+        assert case.risk_level == expected["risk_level"]
+        assert case.expected_capability == expected["expected_capability"]
+        assert case.workflow_tags == expected["workflow_tags"]
+        assert case.mock_evidence
+        assert case.expected_diagnosis
+        assert case.expected_evidence
+        assert case.safe_next_steps
+        assert case.expected_keywords
+        assert case.expected_failure_modes
+
+
 def test_eval_case_taxonomy_fields_are_optional_for_older_data() -> None:
     case = EvalCase(
         case_id="case-1",
@@ -87,6 +149,10 @@ def test_eval_case_taxonomy_fields_are_optional_for_older_data() -> None:
     assert case.risk_level is None
     assert case.expected_capability is None
     assert case.workflow_tags == []
+    assert case.mock_evidence == []
+    assert case.expected_diagnosis is None
+    assert case.expected_evidence == []
+    assert case.safe_next_steps == []
 
 
 def test_run_eval_case_passes_with_valid_structured_output() -> None:
@@ -123,6 +189,20 @@ def test_seeded_eval_case_passes_with_default_deterministic_agent() -> None:
     checks = {check.name: check for check in result.checks}
     assert checks["expected_keywords_present"].passed is True
     assert checks["expected_keywords_present"].details["missing_keywords"] == []
+
+
+def test_all_seeded_eval_cases_pass_with_default_deterministic_agent() -> None:
+    summary = run_all_evals()
+
+    assert summary.total == 4
+    assert summary.passed == 4
+    assert summary.failed == 0
+    assert [result.case_id for result in summary.results] == [
+        "incident-triage-001",
+        "incident-triage-002",
+        "incident-triage-003",
+        "incident-triage-004",
+    ]
 
 
 def test_run_eval_case_fails_when_structured_output_is_invalid() -> None:

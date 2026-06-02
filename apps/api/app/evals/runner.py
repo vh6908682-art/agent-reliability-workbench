@@ -19,6 +19,11 @@ class EvalCase(BaseModel):
     case_id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     task: str = Field(min_length=1)
+    category: str | None = None
+    difficulty: str | None = None
+    risk_level: str | None = None
+    expected_capability: str | None = None
+    workflow_tags: list[str] = Field(default_factory=list)
     expected_keywords: list[str] = Field(default_factory=list)
     expected_failure_modes: list[str] = Field(default_factory=list)
     minimum_score: int = 70
@@ -33,6 +38,11 @@ class EvalCheckResult(BaseModel):
 class EvalCaseResult(BaseModel):
     case_id: str
     name: str
+    category: str | None = None
+    difficulty: str | None = None
+    risk_level: str | None = None
+    expected_capability: str | None = None
+    workflow_tags: list[str] = Field(default_factory=list)
     passed: bool
     score: int
     checks: list[EvalCheckResult]
@@ -63,6 +73,11 @@ def run_eval_case(
     return EvalCaseResult(
         case_id=case.case_id,
         name=case.name,
+        category=case.category,
+        difficulty=case.difficulty,
+        risk_level=case.risk_level,
+        expected_capability=case.expected_capability,
+        workflow_tags=case.workflow_tags,
         passed=passed,
         score=score,
         checks=checks,
@@ -191,6 +206,11 @@ def _parse_eval_case(raw_case: dict[str, Any]) -> EvalCase:
         case_id=raw_case["id"],
         name=raw_case["name"],
         task=raw_case["task"],
+        category=raw_case.get("category"),
+        difficulty=raw_case.get("difficulty"),
+        risk_level=raw_case.get("risk_level"),
+        expected_capability=raw_case.get("expected_capability"),
+        workflow_tags=raw_case.get("workflow_tags", []),
         expected_keywords=raw_case.get("expected_keywords", []),
         expected_failure_modes=raw_case.get("expected_failure_modes", []),
         minimum_score=raw_case.get("minimum_score", 70),

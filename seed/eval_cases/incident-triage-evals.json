@@ -3,6 +3,17 @@
     "id": "incident-triage-001",
     "name": "Kafka duplicate key retry exhaustion",
     "task": "A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.",
+    "category": "incident_investigation",
+    "difficulty": "medium",
+    "risk_level": "medium",
+    "expected_capability": "evidence_based_root_cause_analysis",
+    "workflow_tags": [
+      "kafka",
+      "spring-batch",
+      "duplicate-key",
+      "retry-exhaustion",
+      "backend-data-pipeline"
+    ],
     "expected_keywords": [
       "duplicate key",
       "retry exhaustion",

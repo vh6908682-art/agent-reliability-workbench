@@ -100,6 +100,11 @@ def test_seed_loader_is_idempotent(tmp_path: Path) -> None:
                     "id": "incident-1",
                     "name": "Kafka duplicate key",
                     "task": "Diagnose duplicate key",
+                    "category": "incident_investigation",
+                    "difficulty": "medium",
+                    "risk_level": "medium",
+                    "expected_capability": "evidence_based_root_cause_analysis",
+                    "workflow_tags": ["kafka", "duplicate-key"],
                     "expected_keywords": ["duplicate key"],
                     "minimum_score": 70,
                 }
@@ -121,6 +126,18 @@ def test_seed_loader_is_idempotent(tmp_path: Path) -> None:
     assert len(db.eval_cases) == 1
     assert db.knowledge_documents["seed/documents/runbooks/retry.md"].content.endswith("Second version")
     assert db.eval_cases["Kafka duplicate key"].expected_signals["source_id"] == "incident-1"
+    assert db.eval_cases["Kafka duplicate key"].expected_signals["category"] == "incident_investigation"
+    assert db.eval_cases["Kafka duplicate key"].expected_signals["difficulty"] == "medium"
+    assert db.eval_cases["Kafka duplicate key"].expected_signals["risk_level"] == "medium"
+    assert (
+        db.eval_cases["Kafka duplicate key"].expected_signals["expected_capability"]
+        == "evidence_based_root_cause_analysis"
+    )
+    assert db.eval_cases["Kafka duplicate key"].expected_signals["workflow_tags"] == [
+        "kafka",
+        "duplicate-key",
+    ]
+    assert db.eval_cases["Kafka duplicate key"].tags == ["kafka", "duplicate-key"]
     assert db.commits == 2
 
 

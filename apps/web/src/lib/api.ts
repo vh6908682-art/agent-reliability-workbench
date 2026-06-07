@@ -1,6 +1,13 @@
 export const DEFAULT_INCIDENT_PROMPT =
   "A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.";
 
+export const PROMPT_VERSION_OPTIONS = [
+  { value: "v1", label: "Prompt v1" },
+  { value: "v2", label: "Prompt v2" }
+] as const;
+
+export type PromptVersion = (typeof PROMPT_VERSION_OPTIONS)[number]["value"];
+
 export type ContextSource = {
   source_path?: string;
   title?: string;
@@ -166,13 +173,16 @@ function getErrorMessage(body: unknown, status: number, fallback: string): strin
   return `${fallback} with status ${status}.`;
 }
 
-export async function createAgentRun(task: string): Promise<AgentRunResponse> {
+export async function createAgentRun(
+  task: string,
+  promptVersion: PromptVersion = "v1"
+): Promise<AgentRunResponse> {
   const response = await fetch(`${API_BASE_URL}/agent-runs`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ task })
+    body: JSON.stringify({ task, prompt_version: promptVersion })
   });
 
   const body = (await response.json().catch(() => null)) as unknown;
@@ -222,9 +232,13 @@ export async function listAgentRuns(): Promise<AgentRunSummaryResponse[]> {
   return body as AgentRunSummaryResponse[];
 }
 
-export async function runEvals(): Promise<EvalRunSummary> {
+export async function runEvals(promptVersion: PromptVersion = "v1"): Promise<EvalRunSummary> {
   const response = await fetch(`${API_BASE_URL}/evals/run`, {
-    method: "POST"
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prompt_version: promptVersion })
   });
   const body = (await response.json().catch(() => null)) as unknown;
 

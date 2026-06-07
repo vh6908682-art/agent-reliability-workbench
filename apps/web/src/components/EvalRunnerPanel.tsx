@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-import { runEvals, type EvalRunSummary } from "../lib/api";
+import {
+  PROMPT_VERSION_OPTIONS,
+  runEvals,
+  type EvalRunSummary,
+  type PromptVersion
+} from "../lib/api";
 import { EvalResultCard } from "./EvalResultCard";
 
 type EvalRunnerPanelProps = {
@@ -11,6 +16,7 @@ type EvalRunnerPanelProps = {
 
 export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
   const [result, setResult] = useState<EvalRunSummary | null>(null);
+  const [promptVersion, setPromptVersion] = useState<PromptVersion>("v1");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,7 +25,7 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
     setIsLoading(true);
 
     try {
-      const nextResult = await runEvals();
+      const nextResult = await runEvals(promptVersion);
       setResult(nextResult);
       onRunComplete?.();
     } catch (caught) {
@@ -43,14 +49,31 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
             Run the golden-path incident triage checks and review case-level failures.
           </p>
         </div>
-        <button
-          className="inline-flex w-full items-center justify-center rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
-          disabled={isLoading}
-          onClick={handleRunEvals}
-          type="button"
-        >
-          {isLoading ? "Running..." : "Run Evals"}
-        </button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Prompt version</span>
+            <select
+              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:w-36"
+              disabled={isLoading}
+              onChange={(event) => setPromptVersion(event.target.value as PromptVersion)}
+              value={promptVersion}
+            >
+              {PROMPT_VERSION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="inline-flex w-full items-center justify-center rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+            disabled={isLoading}
+            onClick={handleRunEvals}
+            type="button"
+          >
+            {isLoading ? "Running..." : "Run Evals"}
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

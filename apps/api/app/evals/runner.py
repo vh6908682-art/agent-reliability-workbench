@@ -7,11 +7,12 @@ from pydantic import BaseModel, Field
 
 from app.schemas.agent_runs import AgentRunResponse
 from app.services.agent_loop import IncidentTriageAgentLoop
+from app.services.prompt_versions import resolve_prompt_version
 from app.services.seed_loader import find_seed_root, load_eval_cases as load_seed_eval_cases
 
 
 class EvalAgentLoop(Protocol):
-    def run(self, task: str) -> AgentRunResponse:
+    def run(self, task: str, prompt_version: str | None = None) -> AgentRunResponse:
         pass
 
 
@@ -67,9 +68,11 @@ def load_eval_cases() -> list[EvalCase]:
 def run_eval_case(
     case: EvalCase,
     agent_loop: EvalAgentLoop | None = None,
+    prompt_version: str | None = None,
 ) -> EvalCaseResult:
+    resolved_prompt_version = resolve_prompt_version(prompt_version)
     loop = agent_loop or IncidentTriageAgentLoop(llm_client=DeterministicEvalLLMClient())
-    response = loop.run(case.task)
+    response = loop.run(case.task, prompt_version=resolved_prompt_version)
     checks = evaluate_agent_response(case, response)
     score = _score_checks(checks)
     passed = all(check.passed for check in checks) and score >= case.minimum_score
@@ -88,8 +91,15 @@ def run_eval_case(
     )
 
 
-def run_all_evals(agent_loop: EvalAgentLoop | None = None) -> EvalRunSummary:
-    results = [run_eval_case(case, agent_loop=agent_loop) for case in load_eval_cases()]
+def run_all_evals(
+    agent_loop: EvalAgentLoop | None = None,
+    prompt_version: str | None = None,
+) -> EvalRunSummary:
+    resolved_prompt_version = resolve_prompt_version(prompt_version)
+    results = [
+        run_eval_case(case, agent_loop=agent_loop, prompt_version=resolved_prompt_version)
+        for case in load_eval_cases()
+    ]
     return summarize_eval_results(results)
 
 

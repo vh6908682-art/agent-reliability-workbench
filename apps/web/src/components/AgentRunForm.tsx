@@ -5,7 +5,9 @@ import { FormEvent, useState } from "react";
 import {
   createAgentRun,
   DEFAULT_INCIDENT_PROMPT,
-  type AgentRunResponse
+  PROMPT_VERSION_OPTIONS,
+  type AgentRunResponse,
+  type PromptVersion
 } from "../lib/api";
 
 type AgentRunFormProps = {
@@ -14,6 +16,7 @@ type AgentRunFormProps = {
 
 export function AgentRunForm({ onResult }: AgentRunFormProps) {
   const [task, setTask] = useState(DEFAULT_INCIDENT_PROMPT);
+  const [promptVersion, setPromptVersion] = useState<PromptVersion>("v1");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,7 +32,7 @@ export function AgentRunForm({ onResult }: AgentRunFormProps) {
     setError(null);
     setIsLoading(true);
     try {
-      const result = await createAgentRun(trimmedTask);
+      const result = await createAgentRun(trimmedTask, promptVersion);
       onResult(result);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Agent run failed.");
@@ -56,6 +59,22 @@ export function AgentRunForm({ onResult }: AgentRunFormProps) {
             onChange={(event) => setTask(event.target.value)}
             value={task}
           />
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium text-slate-700">Prompt version</span>
+          <select
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            disabled={isLoading}
+            onChange={(event) => setPromptVersion(event.target.value as PromptVersion)}
+            value={promptVersion}
+          >
+            {PROMPT_VERSION_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
 
         {error ? (

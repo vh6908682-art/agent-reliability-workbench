@@ -15,6 +15,7 @@ from app.evals.runner import (
 )
 from app.main import app
 from app.schemas.agent_runs import AgentRunResponse
+from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
 
 client = TestClient(app)
@@ -43,14 +44,17 @@ class FakeAgentLoop:
         self.structured_output = structured_output
         self.validation_status = validation_status
         self.tasks: list[str] = []
+        self.prompt_versions: list[str | None] = []
 
-    def run(self, task: str) -> AgentRunResponse:
+    def run(self, task: str, prompt_version: str | None = None) -> AgentRunResponse:
         self.tasks.append(task)
+        self.prompt_versions.append(prompt_version)
         return AgentRunResponse(
             task=task,
             answer=json.dumps(self.structured_output),
             structured_output=self.structured_output,
             validation_status=self.validation_status,
+            prompt_version=prompt_version or DEFAULT_PROMPT_VERSION,
             context_sources=[],
         )
 
@@ -293,6 +297,7 @@ def test_run_eval_case_passes_with_valid_structured_output() -> None:
     result = run_eval_case(case, agent_loop=agent_loop)
 
     assert agent_loop.tasks == [case.task]
+    assert agent_loop.prompt_versions == [DEFAULT_PROMPT_VERSION]
     assert result.case_id == "case-1"
     assert result.category == "incident_investigation"
     assert result.difficulty == "medium"
@@ -443,9 +448,41 @@ def test_run_all_evals_runs_loaded_cases(monkeypatch) -> None:
         "Diagnose duplicate key retry exhaustion",
         "Diagnose retry exhaustion",
     ]
+    assert agent_loop.prompt_versions == [DEFAULT_PROMPT_VERSION, DEFAULT_PROMPT_VERSION]
     assert summary.total == 2
     assert summary.passed == 2
     assert summary.failed == 0
+
+
+def test_run_all_evals_uses_explicit_prompt_version(monkeypatch) -> None:
+    cases = [
+        _case(expected_keywords=["duplicate key"]),
+        EvalCase(
+            case_id="case-2",
+            name="Retry exhaustion eval",
+            task="Diagnose retry exhaustion",
+            expected_keywords=["retry exhaustion"],
+            minimum_score=70,
+        ),
+    ]
+    monkeypatch.setattr("app.evals.runner.load_eval_cases", lambda: cases)
+    agent_loop = FakeAgentLoop()
+
+    summary = run_all_evals(agent_loop=agent_loop, prompt_version="v2")
+
+    assert agent_loop.prompt_versions == ["v2", "v2"]
+    assert summary.total == 2
+    assert summary.passed == 2
+    assert summary.failed == 0
+
+
+def test_run_all_evals_rejects_invalid_prompt_version() -> None:
+    try:
+        run_all_evals(agent_loop=FakeAgentLoop(), prompt_version="v3")
+    except ValueError as exc:
+        assert "Unsupported prompt_version 'v3'" in str(exc)
+    else:
+        raise AssertionError("Expected invalid prompt version to raise ValueError")
 
 
 def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
@@ -460,11 +497,18 @@ def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
             )
         ]
     )
-    monkeypatch.setattr("app.api.routes.evals.run_all_evals", lambda: expected_summary)
+    received_prompt_versions: list[str | None] = []
+
+    def fake_run_all_evals(prompt_version: str | None = None) -> EvalRunSummary:
+        received_prompt_versions.append(prompt_version)
+        return expected_summary
+
+    monkeypatch.setattr("app.api.routes.evals.run_all_evals", fake_run_all_evals)
 
     response = client.post("/evals/run")
 
     assert response.status_code == 200
+    assert received_prompt_versions == [None]
     assert response.json() == {
         "total": 1,
         "passed": 1,
@@ -490,6 +534,32 @@ def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
             }
         ],
     }
+
+
+def test_run_evals_endpoint_accepts_prompt_version(monkeypatch) -> None:
+    expected_summary = summarize_eval_results(
+        [
+            EvalCaseResult(
+                case_id="case-1",
+                name="Passing case",
+                passed=True,
+                score=100,
+                checks=[EvalCheckResult(name="structured_output_valid", passed=True)],
+            )
+        ]
+    )
+    received_prompt_versions: list[str | None] = []
+
+    def fake_run_all_evals(prompt_version: str | None = None) -> EvalRunSummary:
+        received_prompt_versions.append(prompt_version)
+        return expected_summary
+
+    monkeypatch.setattr("app.api.routes.evals.run_all_evals", fake_run_all_evals)
+
+    response = client.post("/evals/run", json={"prompt_version": "v2"})
+
+    assert response.status_code == 200
+    assert received_prompt_versions == ["v2"]
 
 
 def _case(expected_keywords: list[str]) -> EvalCase:

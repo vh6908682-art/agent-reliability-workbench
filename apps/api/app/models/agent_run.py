@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
 if TYPE_CHECKING:
     from app.models.eval_result import EvalResult
@@ -42,7 +43,10 @@ class AgentRun(Base):
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     prompt_version: Mapped[str] = mapped_column(
-        String(100), nullable=False, default="v1", server_default="v1"
+        String(100),
+        nullable=False,
+        default=DEFAULT_PROMPT_VERSION,
+        server_default=DEFAULT_PROMPT_VERSION,
     )
     workflow_type: Mapped[str] = mapped_column(
         String(100), nullable=False, default="incident_triage", server_default="incident_triage"

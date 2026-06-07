@@ -23,6 +23,7 @@ from app.services.agent_run_service import (
     update_agent_run_approval,
 )
 from app.services.llm_client import LLMClientError, MissingOpenAIAPIKeyError
+from app.services.prompt_versions import UnknownPromptVersionError
 
 router = APIRouter()
 
@@ -41,7 +42,20 @@ def agent_run_not_found(run_id: int) -> HTTPException:
 @router.post("/agent-runs", response_model=AgentRunResponse)
 def create_agent_run(request: AgentRunRequest, db: Session = Depends(get_db)) -> AgentRunResponse:
     try:
-        return run_and_persist_incident_triage(db, request.task)
+        return run_and_persist_incident_triage(
+            db,
+            request.task,
+            prompt_version=request.prompt_version,
+        )
+    except UnknownPromptVersionError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "invalid_prompt_version",
+                "message": str(exc),
+                "details": None,
+            },
+        ) from exc
     except AgentRunFailedError as exc:
         if isinstance(exc.original, MissingOpenAIAPIKeyError):
             status_code = 503

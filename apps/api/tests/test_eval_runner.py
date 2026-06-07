@@ -2,18 +2,27 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from app.db.session import get_db
 from app.evals.runner import (
     EvalCase,
     EvalCaseResult,
     EvalCheckResult,
     load_eval_cases,
     run_all_evals,
+    run_all_evals_and_persist,
     run_eval_case,
     summarize_eval_results,
 )
 from app.main import app
+from app.models.agent_run import AgentRun
+from app.models.eval_case import EvalCase as EvalCaseModel
+from app.models.eval_result import EvalResult
 from app.schemas.agent_runs import AgentRunResponse
 from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
@@ -57,6 +66,31 @@ class FakeAgentLoop:
             prompt_version=prompt_version or DEFAULT_PROMPT_VERSION,
             context_sources=[],
         )
+
+
+@pytest.fixture()
+def db_session():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    AgentRun.__table__.create(engine)
+    EvalCaseModel.__table__.create(engine)
+    EvalResult.__table__.create(engine)
+    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = testing_session_local()
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        yield session
+    finally:
+        session.close()
+        app.dependency_overrides.clear()
+        engine.dispose()
 
 
 def test_load_eval_cases_from_seed_json() -> None:
@@ -485,7 +519,7 @@ def test_run_all_evals_rejects_invalid_prompt_version() -> None:
         raise AssertionError("Expected invalid prompt version to raise ValueError")
 
 
-def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
+def test_run_evals_endpoint_returns_summary(monkeypatch, db_session) -> None:
     expected_summary = summarize_eval_results(
         [
             EvalCaseResult(
@@ -499,11 +533,14 @@ def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
     )
     received_prompt_versions: list[str | None] = []
 
-    def fake_run_all_evals(prompt_version: str | None = None) -> EvalRunSummary:
+    def fake_run_all_evals_and_persist(db, prompt_version: str | None = None) -> EvalRunSummary:
         received_prompt_versions.append(prompt_version)
         return expected_summary
 
-    monkeypatch.setattr("app.api.routes.evals.run_all_evals", fake_run_all_evals)
+    monkeypatch.setattr(
+        "app.api.routes.evals.run_all_evals_and_persist",
+        fake_run_all_evals_and_persist,
+    )
 
     response = client.post("/evals/run")
 
@@ -536,7 +573,7 @@ def test_run_evals_endpoint_returns_summary(monkeypatch) -> None:
     }
 
 
-def test_run_evals_endpoint_accepts_prompt_version(monkeypatch) -> None:
+def test_run_evals_endpoint_accepts_prompt_version(monkeypatch, db_session) -> None:
     expected_summary = summarize_eval_results(
         [
             EvalCaseResult(
@@ -550,16 +587,55 @@ def test_run_evals_endpoint_accepts_prompt_version(monkeypatch) -> None:
     )
     received_prompt_versions: list[str | None] = []
 
-    def fake_run_all_evals(prompt_version: str | None = None) -> EvalRunSummary:
+    def fake_run_all_evals_and_persist(db, prompt_version: str | None = None) -> EvalRunSummary:
         received_prompt_versions.append(prompt_version)
         return expected_summary
 
-    monkeypatch.setattr("app.api.routes.evals.run_all_evals", fake_run_all_evals)
+    monkeypatch.setattr(
+        "app.api.routes.evals.run_all_evals_and_persist",
+        fake_run_all_evals_and_persist,
+    )
 
     response = client.post("/evals/run", json={"prompt_version": "v2"})
 
     assert response.status_code == 200
     assert received_prompt_versions == ["v2"]
+
+
+def test_run_all_evals_and_persist_records_eval_config_metadata(monkeypatch, db_session) -> None:
+    cases = [
+        _case(expected_keywords=["duplicate key"]),
+        EvalCase(
+            case_id="case-2",
+            name="Retry exhaustion eval",
+            task="Diagnose retry exhaustion",
+            expected_keywords=["retry exhaustion"],
+            minimum_score=70,
+        ),
+    ]
+    monkeypatch.setattr("app.evals.runner.load_eval_cases", lambda: cases)
+    agent_loop = FakeAgentLoop()
+
+    summary = run_all_evals_and_persist(
+        db_session,
+        agent_loop=agent_loop,
+        prompt_version="v2",
+    )
+
+    runs = db_session.query(AgentRun).all()
+    results = db_session.query(EvalResult).all()
+    eval_cases = db_session.query(EvalCaseModel).all()
+
+    assert summary.total == 2
+    assert len(runs) == 1
+    assert runs[0].prompt_version == "v2"
+    assert runs[0].model_name == "gpt-4o-mini"
+    assert runs[0].workflow_type == "incident_triage"
+    assert runs[0].toolset_name == "mock_incident_tools"
+    assert runs[0].guardrail_mode == "standard"
+    assert len(results) == 2
+    assert {result.agent_run_id for result in results} == {runs[0].id}
+    assert len(eval_cases) == 2
 
 
 def _case(expected_keywords: list[str]) -> EvalCase:

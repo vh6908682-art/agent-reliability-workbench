@@ -7,12 +7,34 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.session import get_db
+from app.evals.runner import EvalCase as RunnerEvalCase, run_all_evals_and_persist
 from app.main import app
 from app.models.agent_run import AgentRun
 from app.models.eval_case import EvalCase
 from app.models.eval_result import EvalResult
+from app.schemas.agent_runs import AgentRunResponse
 
 client = TestClient(app)
+
+
+class FakeAgentLoop:
+    def run(self, task: str, prompt_version: str | None = None) -> AgentRunResponse:
+        return AgentRunResponse(
+            task=task,
+            answer='{"likely_cause":"duplicate key","evidence":["retry exhaustion"],'
+            '"recommended_next_steps":["inspect idempotency"],"prevention":["dedupe"],'
+            '"confidence":"high"}',
+            structured_output={
+                "likely_cause": "duplicate key",
+                "evidence": ["retry exhaustion"],
+                "recommended_next_steps": ["inspect idempotency"],
+                "prevention": ["dedupe"],
+                "confidence": "high",
+            },
+            validation_status="valid",
+            prompt_version=prompt_version or "v1",
+            context_sources=[],
+        )
 
 
 @pytest.fixture()
@@ -175,3 +197,32 @@ def test_eval_comparison_aggregates_persisted_results_and_run_metadata(db_sessio
         "guardrail_mode": "standard",
     }
     assert rows[run_two.id]["created_at"] is not None
+
+
+def test_eval_comparison_separates_persisted_prompt_versions(monkeypatch, db_session) -> None:
+    cases = [
+        RunnerEvalCase(
+            case_id="case-1",
+            name="Duplicate key eval",
+            task="Diagnose duplicate key retry exhaustion",
+            expected_keywords=["duplicate key"],
+            minimum_score=70,
+        )
+    ]
+    monkeypatch.setattr("app.evals.runner.load_eval_cases", lambda: cases)
+
+    run_all_evals_and_persist(db_session, agent_loop=FakeAgentLoop(), prompt_version="v1")
+    run_all_evals_and_persist(db_session, agent_loop=FakeAgentLoop(), prompt_version="v2")
+
+    response = client.get("/evals/comparison")
+
+    assert response.status_code == 200
+    rows = response.json()["items"]
+    assert len(rows) == 2
+    rows_by_prompt = {row["prompt_version"]: row for row in rows}
+    assert set(rows_by_prompt) == {"v1", "v2"}
+    assert rows_by_prompt["v1"]["total_cases"] == 1
+    assert rows_by_prompt["v2"]["total_cases"] == 1
+    assert rows_by_prompt["v1"]["workflow_type"] == "incident_triage"
+    assert rows_by_prompt["v2"]["toolset_name"] == "mock_incident_tools"
+    assert rows_by_prompt["v1"]["guardrail_mode"] == "standard"

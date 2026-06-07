@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.models.agent_run import AgentRun
+from app.models.eval_case import EvalCase as EvalCaseModel
+from app.models.eval_result import EvalResult
 from app.schemas.agent_runs import AgentRunResponse
+from app.services.agent_run_service import (
+    DEFAULT_GUARDRAIL_MODE,
+    DEFAULT_TOOLSET_NAME,
+    DEFAULT_WORKFLOW_TYPE,
+)
 from app.services.agent_loop import IncidentTriageAgentLoop
 from app.services.prompt_versions import resolve_prompt_version
 from app.services.seed_loader import find_seed_root, load_eval_cases as load_seed_eval_cases
@@ -103,6 +116,39 @@ def run_all_evals(
     return summarize_eval_results(results)
 
 
+def run_all_evals_and_persist(
+    db: Session,
+    agent_loop: EvalAgentLoop | None = None,
+    prompt_version: str | None = None,
+) -> EvalRunSummary:
+    resolved_prompt_version = resolve_prompt_version(prompt_version)
+    cases = load_eval_cases()
+    loop = agent_loop or IncidentTriageAgentLoop(llm_client=DeterministicEvalLLMClient())
+    results = [
+        run_eval_case(case, agent_loop=loop, prompt_version=resolved_prompt_version)
+        for case in cases
+    ]
+    summary = summarize_eval_results(results)
+    eval_run = _create_eval_run_snapshot(db, summary, loop, resolved_prompt_version)
+
+    cases_by_id = {case.case_id: case for case in cases}
+    for result in results:
+        case = cases_by_id[result.case_id]
+        eval_case = _get_or_create_eval_case(db, case)
+        db.add(
+            EvalResult(
+                eval_case_id=eval_case.id,
+                agent_run_id=eval_run.id,
+                score=_score_decimal(result.score),
+                passed=result.passed,
+                notes=_notes_for_result(result),
+            )
+        )
+
+    db.commit()
+    return summary
+
+
 def summarize_eval_results(results: list[EvalCaseResult]) -> EvalRunSummary:
     passed = sum(1 for result in results if result.passed)
     return EvalRunSummary(
@@ -115,6 +161,8 @@ def summarize_eval_results(results: list[EvalCaseResult]) -> EvalRunSummary:
 
 class DeterministicEvalLLMClient:
     """Local eval LLM stand-in for stable seeded Ticket 008 checks."""
+
+    model = "deterministic_eval_llm"
 
     def generate(self, prompt: str) -> str:
         normalized_prompt = prompt.lower()
@@ -615,6 +663,94 @@ def _parse_eval_case(raw_case: dict[str, Any]) -> EvalCase:
         expected_failure_modes=raw_case.get("expected_failure_modes", []),
         minimum_score=raw_case.get("minimum_score", 70),
     )
+
+
+def _create_eval_run_snapshot(
+    db: Session,
+    summary: EvalRunSummary,
+    agent_loop: EvalAgentLoop,
+    prompt_version: str,
+) -> AgentRun:
+    llm_client = getattr(agent_loop, "llm_client", None)
+    model_name = (
+        getattr(llm_client, "last_model_name", None)
+        or getattr(llm_client, "model", None)
+        or settings.openai_model
+    )
+    now = datetime.now(UTC)
+    run = AgentRun(
+        task="Benchmark eval run",
+        status="completed",
+        final_answer=f"Eval run completed: {summary.passed}/{summary.total} passed.",
+        structured_output={
+            "total": summary.total,
+            "passed": summary.passed,
+            "failed": summary.failed,
+        },
+        validation_status="valid",
+        guardrail_result=None,
+        approval_status="approved",
+        approval_required=False,
+        approval_reviewer_note=None,
+        approval_updated_at=now,
+        started_at=now,
+        completed_at=now,
+        latency_ms=None,
+        model_name=model_name,
+        prompt_version=prompt_version,
+        workflow_type=DEFAULT_WORKFLOW_TYPE,
+        toolset_name=DEFAULT_TOOLSET_NAME,
+        guardrail_mode=DEFAULT_GUARDRAIL_MODE,
+        input_tokens=0,
+        output_tokens=0,
+        total_tokens=0,
+        cost_usd=None,
+    )
+    db.add(run)
+    db.flush()
+    return run
+
+
+def _get_or_create_eval_case(db: Session, case: EvalCase) -> EvalCaseModel:
+    existing = db.scalar(select(EvalCaseModel).where(EvalCaseModel.name == case.name))
+    if existing is not None:
+        return existing
+
+    eval_case = EvalCaseModel(
+        name=case.name,
+        task=case.task,
+        expected_signals={
+            "source_id": case.case_id,
+            "category": case.category,
+            "difficulty": case.difficulty,
+            "risk_level": case.risk_level,
+            "expected_capability": case.expected_capability,
+            "workflow_tags": case.workflow_tags,
+            "mock_evidence": case.mock_evidence,
+            "expected_diagnosis": case.expected_diagnosis,
+            "expected_evidence": case.expected_evidence,
+            "safe_next_steps": case.safe_next_steps,
+            "expected_keywords": case.expected_keywords,
+            "expected_failure_modes": case.expected_failure_modes,
+            "minimum_score": case.minimum_score,
+        },
+        tags=case.workflow_tags or ["incident-triage"],
+        is_active=True,
+    )
+    db.add(eval_case)
+    db.flush()
+    return eval_case
+
+
+def _score_decimal(score: int) -> Decimal:
+    return Decimal(score).scaleb(-2).quantize(Decimal("0.0001"))
+
+
+def _notes_for_result(result: EvalCaseResult) -> str:
+    failed_checks = [check.name for check in result.checks if not check.passed]
+    if not failed_checks:
+        return "All eval checks passed."
+    return "Failed checks: " + ", ".join(failed_checks)
 
 
 def _task_text_from_prompt(normalized_prompt: str) -> str:

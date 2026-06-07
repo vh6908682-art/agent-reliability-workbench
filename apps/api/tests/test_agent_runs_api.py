@@ -15,6 +15,7 @@ from app.models.agent_run import AgentRun
 from app.models.trace_step import TraceStep
 from app.services.context_retriever import RetrievedContext
 from app.services.llm_client import LLMClientError
+from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
 
 client = TestClient(app)
@@ -168,7 +169,7 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
         "requires_approval": False,
         "latency_ms": response_body["latency_ms"],
         "model_name": "gpt-4o-mini",
-        "prompt_version": "v1",
+        "prompt_version": DEFAULT_PROMPT_VERSION,
         "workflow_type": "incident_triage",
         "toolset_name": "mock_incident_tools",
         "guardrail_mode": "standard",
@@ -201,7 +202,7 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
     assert run.started_at is not None
     assert run.completed_at is not None
     assert run.model_name == "gpt-4o-mini"
-    assert run.prompt_version == "v1"
+    assert run.prompt_version == DEFAULT_PROMPT_VERSION
     assert run.workflow_type == "incident_triage"
     assert run.toolset_name == "mock_incident_tools"
     assert run.guardrail_mode == "standard"
@@ -219,6 +220,7 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
     assert [step.step_type for step in trace_steps] == ["retrieval", "llm", "response"]
     assert trace_steps[0].output["context_sources"][0]["relevance_score"] == 12
     assert "prompt" in trace_steps[1].input
+    assert trace_steps[1].input["prompt_version"] == DEFAULT_PROMPT_VERSION
     assert trace_steps[2].output["validation_status"] == "valid"
     assert trace_steps[2].output["guardrail_result"] == EXPECTED_GUARDRAIL_RESULT
 
@@ -575,3 +577,56 @@ def test_create_agent_run_rejects_blank_task() -> None:
     response = client.post("/agent-runs", json={"task": ""})
 
     assert response.status_code == 422
+
+
+def test_create_agent_run_persists_explicit_prompt_version(monkeypatch, db_session) -> None:
+    monkeypatch.setattr(
+        "app.services.agent_loop.SeedContextRetriever",
+        lambda: FakeRetriever(),
+    )
+    monkeypatch.setattr(
+        "app.services.agent_loop.OpenAILLMClient",
+        lambda: FakeLLMClient(),
+    )
+
+    response = client.post(
+        "/agent-runs",
+        json={
+            "task": "Diagnose duplicate key retry exhaustion",
+            "prompt_version": "v2",
+        },
+    )
+
+    assert response.status_code == 200
+    response_body = response.json()
+    assert response_body["prompt_version"] == "v2"
+
+    run = db_session.get(AgentRun, response_body["run_id"])
+    assert run.prompt_version == "v2"
+
+    trace_step = db_session.scalar(
+        select(TraceStep).where(
+            TraceStep.agent_run_id == response_body["run_id"],
+            TraceStep.step_type == "llm",
+        )
+    )
+    assert trace_step.input["prompt_version"] == "v2"
+    assert "careful incident investigation agent" in trace_step.input["prompt"]
+
+
+def test_create_agent_run_rejects_invalid_prompt_version(db_session) -> None:
+    response = client.post(
+        "/agent-runs",
+        json={
+            "task": "Diagnose duplicate key retry exhaustion",
+            "prompt_version": "v3",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "error": "invalid_prompt_version",
+        "message": "Unsupported prompt_version 'v3'. Valid versions: v1, v2.",
+        "details": None,
+    }
+    assert db_session.scalar(select(AgentRun)) is None

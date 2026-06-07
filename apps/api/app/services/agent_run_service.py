@@ -18,6 +18,7 @@ from app.schemas.agent_runs import (
     ApprovalStatus,
 )
 from app.services.agent_loop import IncidentTriageAgentLoop, elapsed_ms
+from app.services.prompt_versions import DEFAULT_PROMPT_VERSION, resolve_prompt_version
 from app.services.trace_recorder import TraceRecorder, public_error_message
 
 
@@ -27,7 +28,6 @@ class AgentRunFailedError(RuntimeError):
         self.original = original
 
 
-DEFAULT_PROMPT_VERSION = "v1"
 DEFAULT_WORKFLOW_TYPE = "incident_triage"
 DEFAULT_TOOLSET_NAME = "mock_incident_tools"
 DEFAULT_GUARDRAIL_MODE = "standard"
@@ -123,8 +123,10 @@ def update_agent_run_approval(
 def run_and_persist_incident_triage(
     db: Session,
     task: str,
+    prompt_version: str | None = None,
     agent_loop: IncidentTriageAgentLoop | None = None,
 ) -> AgentRunResponse:
+    resolved_prompt_version = resolve_prompt_version(prompt_version)
     run = AgentRun(
         task=task,
         status="running",
@@ -139,7 +141,7 @@ def run_and_persist_incident_triage(
         started_at=datetime.now(UTC),
         completed_at=None,
         model_name=None,
-        prompt_version=DEFAULT_PROMPT_VERSION,
+        prompt_version=resolved_prompt_version,
         workflow_type=DEFAULT_WORKFLOW_TYPE,
         toolset_name=DEFAULT_TOOLSET_NAME,
         guardrail_mode=DEFAULT_GUARDRAIL_MODE,
@@ -158,7 +160,11 @@ def run_and_persist_incident_triage(
     run.model_name = getattr(llm_client, "model", None) or settings.openai_model
 
     try:
-        response = agent_loop.run(task, trace_recorder=trace_recorder)
+        response = agent_loop.run(
+            task,
+            trace_recorder=trace_recorder,
+            prompt_version=resolved_prompt_version,
+        )
     except Exception as exc:
         run.status = "failed"
         run.completed_at = datetime.now(UTC)

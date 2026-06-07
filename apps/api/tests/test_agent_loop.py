@@ -1,5 +1,6 @@
 from app.services.agent_loop import IncidentTriageAgentLoop, build_incident_triage_prompt
 from app.services.context_retriever import RetrievedContext
+from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
 
 class FakeRetriever:
@@ -51,6 +52,18 @@ def test_prompt_includes_task_context_and_expected_sections() -> None:
     assert "confidence" in prompt
 
 
+def test_prompt_version_v2_uses_distinct_instruction_style() -> None:
+    prompt = build_incident_triage_prompt(
+        "Diagnose duplicate key retries",
+        [],
+        prompt_version="v2",
+    )
+
+    assert "careful incident investigation agent" in prompt
+    assert "Work from evidence first" in prompt
+    assert "You are an incident triage agent" not in prompt
+
+
 def test_agent_loop_uses_retrieved_context_and_mocked_llm() -> None:
     context = RetrievedContext(
         source_path="seed/documents/runbooks/duplicate-key-violations.md",
@@ -86,5 +99,6 @@ def test_agent_loop_uses_retrieved_context_and_mocked_llm() -> None:
     assert response.output_tokens == 2000
     assert response.total_tokens == 3000
     assert response.estimated_cost_usd is not None
+    assert response.prompt_version == DEFAULT_PROMPT_VERSION
     assert llm_client.prompt is not None
     assert context.content in llm_client.prompt

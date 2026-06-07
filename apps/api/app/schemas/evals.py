@@ -3,6 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class EvalRunRequest(BaseModel):
+    prompt_version: str | None = None
+
+
 class EvalComparisonRow(BaseModel):
     eval_run_id: int
     created_at: datetime

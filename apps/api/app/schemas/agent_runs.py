@@ -5,12 +5,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.guardrails.checker import GuardrailResult
+from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
 ApprovalStatus = Literal["pending_review", "approved", "blocked"]
 
 
 class AgentRunRequest(BaseModel):
     task: str = Field(min_length=1)
+    prompt_version: str | None = None
 
 
 class ContextSource(BaseModel):
@@ -31,7 +33,7 @@ class AgentRunResponse(BaseModel):
     requires_approval: bool = False
     latency_ms: int | None = None
     model_name: str | None = None
-    prompt_version: str = "v1"
+    prompt_version: str = DEFAULT_PROMPT_VERSION
     workflow_type: str = "incident_triage"
     toolset_name: str = "mock_incident_tools"
     guardrail_mode: str = "standard"

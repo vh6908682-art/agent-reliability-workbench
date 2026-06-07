@@ -1,83 +1,136 @@
-# AgentOps Workbench
+# Agent Reliability Workbench
 
-AgentOps Workbench is a developer platform for running, tracing, evaluating, debugging, and safely releasing tool-using LLM agents.
+Agent Reliability Workbench is a local-first platform for benchmarking, tracing, validating, and governing tool-using AI agents.
 
-Most AI agent demos show only the final answer. AgentOps Workbench shows the production layer behind the answer:
+The current benchmark environment is incident investigation. The MVP focuses on a production-like Kafka duplicate-key retry exhaustion incident so agent behavior can be inspected end to end:
 
-- What tools did the agent call?
-- What context did it use?
-- Did the output match the expected schema?
-- Did evals pass?
-- What did the run cost?
-- How long did each step take?
-- Did risky actions require approval?
-- Why did a run fail?
+> run -> trace -> validate -> govern -> evaluate -> compare
 
-The MVP focuses on one serious golden path: a Developer Support / Incident Triage Agent for backend incident diagnosis.
+## Why This Exists
 
-## Demo workflow
+AI agents can produce plausible answers while skipping evidence, using the wrong tools, violating output contracts, or recommending unsafe actions.
 
-A user submits an incident-like task:
+Observability alone is not enough. Teams also need repeatable benchmarks and governance checks so they can compare prompts, models, workflow types, toolsets, and guardrail modes over the same tasks.
+
+Incident investigation is the first benchmark domain because it tests practical agent reliability: evidence gathering, tool choice, diagnosis quality, structured output, and safe next-step recommendations.
+
+## What It Does
+
+Implemented capabilities include:
+
+- Create incident investigation agent runs.
+- Retrieve relevant seeded benchmark context.
+- Persist run traces and intermediate steps.
+- Store retrieved evidence and tool-like investigation steps.
+- Validate structured incident diagnosis output.
+- Run guardrail checks against risky recommendations.
+- Track approval state for recommendations that need review.
+- Capture latency, token, model, prompt, workflow, toolset, guardrail, and estimated cost metadata where available.
+- Run deterministic eval cases.
+- Compare eval results across persisted run and configuration metadata.
+- Show agent runs, traces, evals, recent runs, approval state, and comparison views in the frontend.
+
+This is not currently a hosted production system, a multi-agent orchestration platform, or a real production log/Kafka integration. Those belong on the roadmap unless a future ticket explicitly implements them.
+
+## Core Benchmark Story
+
+The golden-path benchmark starts with this incident prompt:
 
 > A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.
 
-The agent should:
+The agent investigates using local benchmark context, including seeded logs, runbooks, schemas, and configuration-like evidence. The system captures trace steps, retrieved context, structured diagnosis, validation result, guardrail status, approval state, cost/latency metadata, and eval score.
 
-1. Classify the incident.
-2. Search mock logs.
-3. Look up mock service configuration.
-4. Validate payload/schema if relevant.
-5. Produce structured diagnosis JSON.
-6. Store trace events for every major step.
-7. Validate final output against a schema.
-8. Run deterministic eval checks.
-9. Require approval before mock high-risk actions.
+Eval comparison then makes it possible to compare agent configurations over repeatable benchmark cases instead of judging a single final answer by feel.
 
-## MVP features
+## Quickstart
 
-- FastAPI backend
-- Next.js frontend
-- PostgreSQL database
-- Agent run lifecycle
-- Trace event storage
-- Structured output validation
-- Typed tool registry
-- Mock incident triage tools
-- Guardrail and approval model
-- Deterministic eval engine
-- Demo-friendly dashboard
+Prerequisites:
 
-## Tech stack
+- Python 3.11+
+- Node.js 20+
+- Docker
+- An OpenAI API key for live agent runs
 
-Backend:
+Start Postgres:
 
-- Python
-- FastAPI
-- Pydantic
-- SQLAlchemy
-- Alembic
-- PostgreSQL
+```bash
+docker compose up -d
+```
 
-Frontend:
+Set up and run the API:
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
+```bash
+cd apps/api
+python -m pip install -e .
+export OPENAI_API_KEY=your_key_here
+alembic upgrade head
+python -m app.cli.seed
+python -m pytest
+python -m uvicorn app.main:app --reload
+```
 
-Infrastructure:
+The API runs at:
 
-- Docker Compose
-- GitHub Actions
-- PostgreSQL
-- pgvector later
+- http://localhost:8000
+- http://localhost:8000/docs
 
-LLM provider:
+Set up and run the web app in a second terminal:
 
-- OpenAI first
-- Other providers later only if useful
+```bash
+cd apps/web
+npm install
+npm run dev
+```
 
-## Project structure
+The web app runs at:
+
+- http://localhost:3000
+
+## Tech Stack
+
+- Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL
+- Frontend: Next.js, React, TypeScript, Tailwind CSS
+- Eval and agent layer: deterministic eval runner, prompt/config metadata, structured validation, guardrail checks
+- Infrastructure: Docker Compose
+
+## Sample Eval Comparison Output
+
+Representative response shape from the eval comparison API:
+
+```json
+{
+  "items": [
+    {
+      "eval_run_id": 42,
+      "created_at": "2026-06-07T12:00:00Z",
+      "total_cases": 12,
+      "passed": 11,
+      "failed": 1,
+      "pass_rate": 0.9167,
+      "avg_score": 0.87,
+      "avg_latency": 1240.0,
+      "avg_cost": 0.0018,
+      "guardrail_failure_count": 0,
+      "model_name": "deterministic_eval_llm",
+      "prompt_version": "v1",
+      "workflow_type": "incident_triage",
+      "toolset_name": "mock_incident_tools",
+      "guardrail_mode": "standard"
+    }
+  ]
+}
+```
+
+## Screenshots
+
+> TODO: Add screenshots or GIFs of:
+>
+> - Agent run form
+> - Trace viewer
+> - Eval runner
+> - Eval comparison dashboard
+
+## Project Structure
 
 ```text
 agentops-workbench/
@@ -99,7 +152,6 @@ agentops-workbench/
         lib/
         types/
   docs/
-    product/
     architecture/
     tickets/
   seed/
@@ -107,3 +159,18 @@ agentops-workbench/
     eval_cases/
     mock_logs/
 ```
+
+## Roadmap
+
+Implemented work is intentionally focused on the local MVP. Future work may include:
+
+- More production-like benchmark incidents.
+- Better eval scoring rubrics and failure categories.
+- Screenshot and GIF demo assets.
+- LangGraph or workflow orchestration experiments.
+- More realistic tool simulation.
+- Hosted demo mode.
+- Exportable benchmark reports.
+- Additional benchmark domains after incident investigation is stronger.
+
+See `docs/PROJECT_VISION.md`, `docs/BENCHMARK_SPEC.md`, `docs/EVAL_METHODOLOGY.md`, and `docs/ROADMAP.md` for the deeper product direction.

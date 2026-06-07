@@ -63,6 +63,10 @@ def test_load_eval_cases_from_seed_json() -> None:
         "incident-triage-002",
         "incident-triage-003",
         "incident-triage-004",
+        "incident-triage-005",
+        "incident-triage-006",
+        "incident-triage-007",
+        "incident-triage-008",
     ]
     assert cases[0].name == "Kafka duplicate key retry exhaustion"
     assert cases[0].category == "incident_investigation"
@@ -119,6 +123,57 @@ def test_new_seeded_eval_cases_include_required_benchmark_fields() -> None:
                 "backend-service",
             ],
         },
+        "incident-triage-005": {
+            "name": "Environment config drift",
+            "difficulty": "medium",
+            "risk_level": "medium",
+            "expected_capability": "configuration_drift_analysis",
+            "workflow_tags": [
+                "config-drift",
+                "feature-flag",
+                "environment-mismatch",
+                "backend-service",
+            ],
+        },
+        "incident-triage-006": {
+            "name": "Dead-letter queue poison message",
+            "difficulty": "medium",
+            "risk_level": "medium",
+            "expected_capability": "dead_letter_poison_message_analysis",
+            "workflow_tags": [
+                "dead-letter-queue",
+                "poison-message",
+                "payload-validation",
+                "retry-exhaustion",
+                "backend-data-pipeline",
+            ],
+        },
+        "incident-triage-007": {
+            "name": "Secret rotation auth failure",
+            "difficulty": "hard",
+            "risk_level": "high",
+            "expected_capability": "secret_rotation_dependency_analysis",
+            "workflow_tags": [
+                "secret-rotation",
+                "authentication-failure",
+                "downstream-dependency",
+                "config-drift",
+                "governance",
+            ],
+        },
+        "incident-triage-008": {
+            "name": "Stale runbook unsafe offset reset",
+            "difficulty": "hard",
+            "risk_level": "high",
+            "expected_capability": "runbook_conflict_and_risk_assessment",
+            "workflow_tags": [
+                "runbook-conflict",
+                "consumer-lag",
+                "offset-reset",
+                "financial-events",
+                "governance",
+            ],
+        },
     }
 
     for case_id, expected in expected_cases.items():
@@ -135,6 +190,28 @@ def test_new_seeded_eval_cases_include_required_benchmark_fields() -> None:
         assert case.safe_next_steps
         assert case.expected_keywords
         assert case.expected_failure_modes
+
+
+def test_seeded_eval_cases_have_unique_ids_and_required_expected_fields() -> None:
+    cases = load_eval_cases()
+
+    assert len(cases) == 8
+    assert len({case.case_id for case in cases}) == len(cases)
+    assert cases[0].case_id == "incident-triage-001"
+    assert cases[0].name == "Kafka duplicate key retry exhaustion"
+
+    for case in cases:
+        assert case.category == "incident_investigation"
+        assert case.difficulty
+        assert case.risk_level
+        assert case.expected_capability
+        assert case.workflow_tags
+        assert case.mock_evidence
+        assert case.expected_diagnosis
+        assert case.expected_evidence
+        assert case.safe_next_steps
+        assert case.expected_keywords
+        assert case.minimum_score == 70
 
 
 def test_eval_case_taxonomy_fields_are_optional_for_older_data() -> None:
@@ -194,14 +271,18 @@ def test_seeded_eval_case_passes_with_default_deterministic_agent() -> None:
 def test_all_seeded_eval_cases_pass_with_default_deterministic_agent() -> None:
     summary = run_all_evals()
 
-    assert summary.total == 4
-    assert summary.passed == 4
+    assert summary.total == 8
+    assert summary.passed == 8
     assert summary.failed == 0
     assert [result.case_id for result in summary.results] == [
         "incident-triage-001",
         "incident-triage-002",
         "incident-triage-003",
         "incident-triage-004",
+        "incident-triage-005",
+        "incident-triage-006",
+        "incident-triage-007",
+        "incident-triage-008",
     ]
 
 

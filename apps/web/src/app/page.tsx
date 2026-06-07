@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AgentRunForm } from "../components/AgentRunForm";
 import { AgentRunResult } from "../components/AgentRunResult";
+import { EvalComparisonPanel } from "../components/EvalComparisonPanel";
 import { EvalRunnerPanel } from "../components/EvalRunnerPanel";
 import { RecentRunsPanel } from "../components/RecentRunsPanel";
 import { TraceViewer } from "../components/TraceViewer";
@@ -14,6 +15,7 @@ const navItems = ["Run Agent", "Runs", "Traces", "Validation", "Evals", "Guardra
 export default function Home() {
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [runsRefreshKey, setRunsRefreshKey] = useState(0);
+  const [comparisonRefreshKey, setComparisonRefreshKey] = useState(0);
 
   function handleResult(nextResult: AgentRunResponse) {
     setResult(nextResult);
@@ -74,7 +76,10 @@ export default function Home() {
           />
           <AgentRunResult result={result} />
           <TraceViewer result={result} />
-          <EvalRunnerPanel />
+          <EvalRunnerPanel
+            onRunComplete={() => setComparisonRefreshKey((current) => current + 1)}
+          />
+          <EvalComparisonPanel refreshKey={comparisonRefreshKey} />
         </div>
       </section>
     </main>

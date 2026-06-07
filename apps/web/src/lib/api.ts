@@ -126,6 +126,28 @@ export type EvalRunSummary = {
   results?: EvalCaseResult[];
 };
 
+export type EvalComparisonItem = {
+  eval_run_id: number;
+  created_at: string;
+  total_cases: number;
+  passed: number;
+  failed: number;
+  pass_rate: number;
+  avg_score: number | null;
+  avg_latency: number | null;
+  avg_cost: number | null;
+  guardrail_failure_count: number;
+  model_name: string | null;
+  prompt_version: string | null;
+  workflow_type: string | null;
+  toolset_name: string | null;
+  guardrail_mode: string | null;
+};
+
+export type EvalComparisonResponse = {
+  items: EvalComparisonItem[];
+};
+
 type ApiErrorDetail = {
   detail?: {
     error?: string;
@@ -211,4 +233,15 @@ export async function runEvals(): Promise<EvalRunSummary> {
   }
 
   return body as EvalRunSummary;
+}
+
+export async function getEvalComparison(): Promise<EvalComparisonResponse> {
+  const response = await fetch(`${API_BASE_URL}/evals/comparison`);
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status, "Eval comparison request failed"));
+  }
+
+  return body as EvalComparisonResponse;
 }

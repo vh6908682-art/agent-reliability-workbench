@@ -5,7 +5,11 @@ import { useState } from "react";
 import { runEvals, type EvalRunSummary } from "../lib/api";
 import { EvalResultCard } from "./EvalResultCard";
 
-export function EvalRunnerPanel() {
+type EvalRunnerPanelProps = {
+  onRunComplete?: () => void;
+};
+
+export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
   const [result, setResult] = useState<EvalRunSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +19,9 @@ export function EvalRunnerPanel() {
     setIsLoading(true);
 
     try {
-      setResult(await runEvals());
+      const nextResult = await runEvals();
+      setResult(nextResult);
+      onRunComplete?.();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Eval run failed.");
     } finally {

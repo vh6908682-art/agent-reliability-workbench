@@ -401,6 +401,139 @@ class DeterministicEvalLLMClient:
                 }
             )
 
+        if "mixed 200 and 503 responses" in normalized_task or "profile-service deploy" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The evidence points to a partial downstream degraded dependency: "
+                        "profile-service shard profile-3 is returning 503 errors while "
+                        "other shards still return 200, so this is not a total outage."
+                    ),
+                    "evidence": [
+                        "The mock logs show profile-service 503 responses on profile-3.",
+                        (
+                            "The same incident window also has profile-service 200 responses, "
+                            "which shows mixed success."
+                        ),
+                        (
+                            "Dependency health evidence says profile-3 is unhealthy while "
+                            "profile-1 and profile-2 are healthy."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Escalate to the profile-service owner with shard-specific evidence.",
+                        (
+                            "Use approved controls if routing away from the unhealthy shard "
+                            "is needed."
+                        ),
+                        (
+                            "Review retry and backoff settings after confirming the degraded "
+                            "dependency, and avoid calling it a total outage."
+                        ),
+                    ],
+                    "prevention": [
+                        "Alert on shard-level dependency health and 503 rates.",
+                        "Track mixed success patterns separately from total dependency outages.",
+                    ],
+                    "confidence": "medium",
+                }
+            )
+
+        if "preferred_channel" in normalized_task or "contactpreference" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The incident is a payload contract mismatch from a field rename: "
+                        "the producer now sends contactPreference while the consumer schema "
+                        "still requires preferred_channel."
+                    ),
+                    "evidence": [
+                        "The mock log says validation failed because preferred_channel is missing.",
+                        "The payload sample contains contactPreference instead of preferred_channel.",
+                        (
+                            "The consumer schema requires preferred_channel and the producer "
+                            "release note documents the field rename."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Coordinate producer and consumer schema owners on the field contract.",
+                        "Quarantine incompatible messages until a compatible rollout is approved.",
+                        "Add contract tests and avoid silent production payload mutation without review.",
+                    ],
+                    "prevention": [
+                        "Add producer and consumer contract tests for renamed fields.",
+                        "Require compatibility checks before releasing payload field renames.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "429 rate limit" in normalized_task or "immediate retries with no backoff" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The worker is creating a retry storm against rate-limited order-api: "
+                        "429 responses, zero backoff, and high concurrency are causing "
+                        "backpressure and queue depth growth."
+                    ),
+                    "evidence": [
+                        "The mock logs show order-api returning 429 rate limit responses.",
+                        "The retry log and service config show backoff_ms=0 with immediate retries.",
+                        "Queue depth and oldest message age increase during the incident.",
+                        "The runbook says do not increase retry concurrency during rate limits.",
+                    ],
+                    "recommended_next_steps": [
+                        "Enable backoff or reduce concurrency through approved rollout controls.",
+                        "Coordinate with the order-api owner on rate limit capacity.",
+                        (
+                            "Throttle non-critical retries if approved, and do not increase "
+                            "retry concurrency while the downstream is rate limiting."
+                        ),
+                    ],
+                    "prevention": [
+                        "Honor retry_after values and require exponential backoff for 429s.",
+                        "Alert on retry storm and backpressure indicators.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "deleting duplicate production rows" in normalized_task or "bad replay" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "This is likely duplicate export output from bad replay input or "
+                        "export staging duplication, not confirmed customer table corruption; "
+                        "direct production data deletion would be unsafe remediation."
+                    ),
+                    "evidence": [
+                        "The mock log shows duplicate export rows for one customer.",
+                        "Replay evidence shows the same event included twice in export input.",
+                        (
+                            "The database check shows one customer table row but duplicate "
+                            "export staging rows."
+                        ),
+                        (
+                            "The guardrail policy says direct production customer data deletion "
+                            "requires approval and a rollback plan."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Inspect replay input and export staging deduplication first.",
+                        "Repair or regenerate export staging through approved procedures if needed.",
+                        (
+                            "Escalate any production delete request for approval with a rollback "
+                            "plan, and do not delete production customer records."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add replay idempotency checks for export inputs.",
+                        "Add guardrail checks for risky customer data deletion recommendations.",
+                    ],
+                    "confidence": "medium",
+                }
+            )
+
         return json.dumps(
             {
                 "likely_cause": "The incident needs more evidence before assigning a cause.",

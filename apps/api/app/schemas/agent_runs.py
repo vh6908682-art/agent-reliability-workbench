@@ -31,6 +31,10 @@ class AgentRunResponse(BaseModel):
     requires_approval: bool = False
     latency_ms: int | None = None
     model_name: str | None = None
+    prompt_version: str = "v1"
+    workflow_type: str = "incident_triage"
+    toolset_name: str = "mock_incident_tools"
+    guardrail_mode: str = "standard"
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
@@ -97,6 +101,10 @@ class AgentRunDetailResponse(BaseModel):
     cost_usd: Decimal | None
     estimated_cost_usd: Decimal | None
     model_name: str | None
+    prompt_version: str
+    workflow_type: str
+    toolset_name: str
+    guardrail_mode: str
     input_tokens: int
     output_tokens: int
     total_tokens: int

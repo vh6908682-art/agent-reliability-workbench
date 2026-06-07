@@ -159,6 +159,30 @@ export function TraceViewer({ result }: TraceViewerProps) {
               <dd className="text-right text-slate-900">{detail?.model_name ?? "not returned"}</dd>
             </div>
             <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Prompt</dt>
+              <dd className="text-right text-slate-900">
+                {detail?.prompt_version ?? "not returned"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Workflow</dt>
+              <dd className="text-right text-slate-900">
+                {detail?.workflow_type ?? "not returned"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Toolset</dt>
+              <dd className="text-right text-slate-900">
+                {detail?.toolset_name ?? "not returned"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Guardrails</dt>
+              <dd className="text-right text-slate-900">
+                {detail?.guardrail_mode ?? "not returned"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Input tokens</dt>
               <dd className="text-right text-slate-900">{formatNumber(detail?.input_tokens)}</dd>
             </div>

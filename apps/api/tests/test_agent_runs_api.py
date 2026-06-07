@@ -168,6 +168,10 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
         "requires_approval": False,
         "latency_ms": response_body["latency_ms"],
         "model_name": "gpt-4o-mini",
+        "prompt_version": "v1",
+        "workflow_type": "incident_triage",
+        "toolset_name": "mock_incident_tools",
+        "guardrail_mode": "standard",
         "input_tokens": 1000,
         "output_tokens": 2000,
         "total_tokens": 3000,
@@ -197,6 +201,10 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
     assert run.started_at is not None
     assert run.completed_at is not None
     assert run.model_name == "gpt-4o-mini"
+    assert run.prompt_version == "v1"
+    assert run.workflow_type == "incident_triage"
+    assert run.toolset_name == "mock_incident_tools"
+    assert run.guardrail_mode == "standard"
     assert run.input_tokens == 1000
     assert run.output_tokens == 2000
     assert run.total_tokens == 3000
@@ -250,6 +258,10 @@ def test_get_agent_run_returns_metadata_and_ordered_trace_steps(monkeypatch, db_
     assert response_body["completed_at"] is not None
     assert response_body["latency_ms"] is not None
     assert response_body["model_name"] == "gpt-4o-mini"
+    assert response_body["prompt_version"] == "v1"
+    assert response_body["workflow_type"] == "incident_triage"
+    assert response_body["toolset_name"] == "mock_incident_tools"
+    assert response_body["guardrail_mode"] == "standard"
     assert response_body["input_tokens"] == 1000
     assert response_body["output_tokens"] == 2000
     assert response_body["total_tokens"] == 3000
@@ -537,6 +549,11 @@ def test_failed_agent_run_is_persisted_with_safe_trace_output(monkeypatch, db_se
     assert run.final_answer is None
     assert run.completed_at is not None
     assert run.latency_ms is not None
+    assert run.model_name == "gpt-4o-mini"
+    assert run.prompt_version == "v1"
+    assert run.workflow_type == "incident_triage"
+    assert run.toolset_name == "mock_incident_tools"
+    assert run.guardrail_mode == "standard"
     assert run.input_tokens == 0
     assert run.output_tokens == 0
     assert run.total_tokens == 0

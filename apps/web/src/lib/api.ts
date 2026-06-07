@@ -51,6 +51,10 @@ export type AgentRunDetailResponse = {
   cost_usd: string | number | null;
   estimated_cost_usd: string | number | null;
   model_name: string | null;
+  prompt_version: string | null;
+  workflow_type: string | null;
+  toolset_name: string | null;
+  guardrail_mode: string | null;
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
@@ -88,6 +92,10 @@ export type AgentRunResponse = {
   requires_approval?: boolean;
   latency_ms?: number | null;
   model_name?: string | null;
+  prompt_version?: string | null;
+  workflow_type?: string | null;
+  toolset_name?: string | null;
+  guardrail_mode?: string | null;
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;

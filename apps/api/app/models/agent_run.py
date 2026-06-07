@@ -41,6 +41,21 @@ class AgentRun(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    prompt_version: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="v1", server_default="v1"
+    )
+    workflow_type: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="incident_triage", server_default="incident_triage"
+    )
+    toolset_name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        default="mock_incident_tools",
+        server_default="mock_incident_tools",
+    )
+    guardrail_mode: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="standard", server_default="standard"
+    )
     input_tokens: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )

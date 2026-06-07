@@ -8,6 +8,7 @@ from typing import cast
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.guardrails.checker import GuardrailResult
 from app.models.agent_run import AgentRun
 from app.schemas.agent_runs import (
@@ -24,6 +25,12 @@ class AgentRunFailedError(RuntimeError):
     def __init__(self, public_message: str, original: Exception) -> None:
         super().__init__(public_message)
         self.original = original
+
+
+DEFAULT_PROMPT_VERSION = "v1"
+DEFAULT_WORKFLOW_TYPE = "incident_triage"
+DEFAULT_TOOLSET_NAME = "mock_incident_tools"
+DEFAULT_GUARDRAIL_MODE = "standard"
 
 
 def guardrails_require_approval(guardrail_result: GuardrailResult | None) -> bool:
@@ -132,6 +139,10 @@ def run_and_persist_incident_triage(
         started_at=datetime.now(UTC),
         completed_at=None,
         model_name=None,
+        prompt_version=DEFAULT_PROMPT_VERSION,
+        workflow_type=DEFAULT_WORKFLOW_TYPE,
+        toolset_name=DEFAULT_TOOLSET_NAME,
+        guardrail_mode=DEFAULT_GUARDRAIL_MODE,
         input_tokens=0,
         output_tokens=0,
         total_tokens=0,
@@ -143,6 +154,8 @@ def run_and_persist_incident_triage(
     started_at = perf_counter()
     trace_recorder = TraceRecorder(db=db, agent_run_id=run.id)
     agent_loop = agent_loop or IncidentTriageAgentLoop()
+    llm_client = getattr(agent_loop, "llm_client", None)
+    run.model_name = getattr(llm_client, "model", None) or settings.openai_model
 
     try:
         response = agent_loop.run(task, trace_recorder=trace_recorder)
@@ -170,7 +183,7 @@ def run_and_persist_incident_triage(
     run.approval_updated_at = datetime.now(UTC)
     run.completed_at = datetime.now(UTC)
     run.latency_ms = elapsed_ms(started_at)
-    run.model_name = response.model_name
+    run.model_name = response.model_name or run.model_name
     run.input_tokens = response.input_tokens
     run.output_tokens = response.output_tokens
     run.total_tokens = response.total_tokens
@@ -189,6 +202,10 @@ def run_and_persist_incident_triage(
         requires_approval=run.approval_required,
         latency_ms=run.latency_ms,
         model_name=run.model_name,
+        prompt_version=run.prompt_version,
+        workflow_type=run.workflow_type,
+        toolset_name=run.toolset_name,
+        guardrail_mode=run.guardrail_mode,
         input_tokens=run.input_tokens,
         output_tokens=run.output_tokens,
         total_tokens=run.total_tokens,

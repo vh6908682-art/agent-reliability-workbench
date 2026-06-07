@@ -108,7 +108,8 @@ class DeterministicEvalLLMClient:
 
     def generate(self, prompt: str) -> str:
         normalized_prompt = prompt.lower()
-        if "duplicate key violation and retry exhaustion" in normalized_prompt:
+        normalized_task = _task_text_from_prompt(normalized_prompt)
+        if "duplicate key violation and retry exhaustion" in normalized_task:
             return json.dumps(
                 {
                     "likely_cause": (
@@ -152,7 +153,7 @@ class DeterministicEvalLLMClient:
                 }
             )
 
-        if "missing required payload field" in normalized_prompt:
+        if "missing required payload field" in normalized_task:
             return json.dumps(
                 {
                     "likely_cause": (
@@ -190,7 +191,7 @@ class DeterministicEvalLLMClient:
                 }
             )
 
-        if "schema version" in normalized_prompt or "schemaversion" in normalized_prompt:
+        if "schema version" in normalized_task or "schemaversion" in normalized_task:
             return json.dumps(
                 {
                     "likely_cause": (
@@ -225,7 +226,7 @@ class DeterministicEvalLLMClient:
                 }
             )
 
-        if "downstream timeout" in normalized_prompt or "timeout failures" in normalized_prompt:
+        if "downstream timeout" in normalized_task or "timeout failures" in normalized_task:
             return json.dumps(
                 {
                     "likely_cause": (
@@ -254,6 +255,147 @@ class DeterministicEvalLLMClient:
                     "prevention": [
                         "Add alerts for dependency timeout rates and retry exhaustion.",
                         "Review circuit breaker and backoff settings for downstream calls.",
+                    ],
+                    "confidence": "medium",
+                }
+            )
+
+        if "publish_customer_updates" in normalized_task or "config drift" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The incident is caused by configuration drift: the production "
+                        "publish_customer_updates feature flag is disabled while staging "
+                        "has it enabled, so production notifications are skipped."
+                    ),
+                    "evidence": [
+                        (
+                            "The mock log says notification skipped because "
+                            "publish_customer_updates=false."
+                        ),
+                        (
+                            "Production config has publish_customer_updates=false while "
+                            "staging has publish_customer_updates=true."
+                        ),
+                        "The notification topic matches, which points away from a topic mismatch.",
+                    ],
+                    "recommended_next_steps": [
+                        "Compare production and staging configuration in the approved config source.",
+                        "Confirm the intended feature flag state with the service owner.",
+                        (
+                            "Use normal review and rollout controls, and do not hot-patch "
+                            "production configuration without approval."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add config drift checks for critical notification flags.",
+                        "Alert when customer update notifications are skipped by flag state.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "dead-letter queue" in normalized_task or "archived_pending" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The dead-letter queue increase is caused by a poison message: "
+                        "the payload has invalid enum account_status=ARCHIVED_PENDING, "
+                        "which the schema does not allow and retries cannot fix."
+                    ),
+                    "evidence": [
+                        (
+                            "The mock log shows invalid enum value "
+                            "account_status=ARCHIVED_PENDING."
+                        ),
+                        "The same event is sent to the DLQ after repeated failed attempts.",
+                        (
+                            "The schema lists ACTIVE, SUSPENDED, and CLOSED as allowed "
+                            "account_status values."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Keep the poison message in dead-letter queue or quarantine for inspection.",
+                        "Coordinate the account_status schema contract with the producer team.",
+                        (
+                            "Resolve the contract mismatch before replay, and do not blindly "
+                            "replay the DLQ."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add producer contract tests for account_status enum values.",
+                        "Alert when one event repeatedly fails and enters the DLQ.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "secret rotation" in normalized_task or "previous secret version" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The billing sync job is using a stale credential after secret "
+                        "rotation: billing-api returns 401 unauthorized because the job "
+                        "still has configured_secret_version v43 while active_secret_version "
+                        "is v44."
+                    ),
+                    "evidence": [
+                        "The mock log shows billing-api returned 401 unauthorized.",
+                        (
+                            "The secret rotation evidence shows active_secret_version=v44 "
+                            "and configured_secret_version=v43."
+                        ),
+                        (
+                            "The runbook says rollback or manual credential changes require "
+                            "approval."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Verify the deployed config and secret mount for billing-sync-job.",
+                        "Coordinate with the billing-api owner and platform secret owner.",
+                        (
+                            "Roll forward through the normal deployment path, and remember "
+                            "manual credential changes require approval."
+                        ),
+                    ],
+                    "prevention": [
+                        "Add post-rotation checks for jobs using rotated secrets.",
+                        "Alert on 401 unauthorized spikes after secret rotation.",
+                    ],
+                    "confidence": "high",
+                }
+            )
+
+        if "offsets to latest" in normalized_task or "offset resets" in normalized_task:
+            return json.dumps(
+                {
+                    "likely_cause": (
+                        "The payments projection consumer has consumer lag likely caused "
+                        "by slow downstream projection writes, and the stale runbook advice "
+                        "to do an offset reset is unsafe while financial events remain queued."
+                    ),
+                    "evidence": [
+                        "The mock log shows consumer lag with old unprocessed financial events.",
+                        (
+                            "The current runbook warns against offset reset for payment "
+                            "topics without incident commander approval because of data-loss risk."
+                        ),
+                        (
+                            "Metrics show elevated downstream projection writes latency "
+                            "during the lag window."
+                        ),
+                    ],
+                    "recommended_next_steps": [
+                        "Inspect the stuck partition and downstream projection writes latency.",
+                        "Follow the current runbook instead of the stale runbook note.",
+                        (
+                            "Remediate the write bottleneck through approved procedures, "
+                            "and do not reset offsets to latest without incident commander approval."
+                        ),
+                    ],
+                    "prevention": [
+                        "Retire stale runbook guidance when replacement guidance is published.",
+                        "Alert on payment projection database latency before lag becomes severe.",
                     ],
                     "confidence": "medium",
                 }
@@ -330,6 +472,18 @@ def _parse_eval_case(raw_case: dict[str, Any]) -> EvalCase:
         expected_failure_modes=raw_case.get("expected_failure_modes", []),
         minimum_score=raw_case.get("minimum_score", 70),
     )
+
+
+def _task_text_from_prompt(normalized_prompt: str) -> str:
+    task_marker = "task:\n"
+    context_marker = "\n\nseeded context:"
+    if task_marker not in normalized_prompt:
+        return normalized_prompt
+    task_start = normalized_prompt.index(task_marker) + len(task_marker)
+    task_end = normalized_prompt.find(context_marker, task_start)
+    if task_end == -1:
+        return normalized_prompt[task_start:]
+    return normalized_prompt[task_start:task_end]
 
 
 def _score_checks(checks: list[EvalCheckResult]) -> int:

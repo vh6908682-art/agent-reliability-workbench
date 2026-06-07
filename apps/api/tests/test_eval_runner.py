@@ -67,6 +67,10 @@ def test_load_eval_cases_from_seed_json() -> None:
         "incident-triage-006",
         "incident-triage-007",
         "incident-triage-008",
+        "incident-triage-009",
+        "incident-triage-010",
+        "incident-triage-011",
+        "incident-triage-012",
     ]
     assert cases[0].name == "Kafka duplicate key retry exhaustion"
     assert cases[0].category == "incident_investigation"
@@ -174,6 +178,56 @@ def test_new_seeded_eval_cases_include_required_benchmark_fields() -> None:
                 "governance",
             ],
         },
+        "incident-triage-009": {
+            "name": "Partial downstream outage mixed responses",
+            "difficulty": "medium",
+            "risk_level": "medium",
+            "expected_capability": "partial_dependency_degradation_analysis",
+            "workflow_tags": [
+                "partial-outage",
+                "degraded-dependency",
+                "mixed-signals",
+                "backend-service",
+            ],
+        },
+        "incident-triage-010": {
+            "name": "Payload contract field rename mismatch",
+            "difficulty": "medium",
+            "risk_level": "medium",
+            "expected_capability": "payload_contract_mismatch_detection",
+            "workflow_tags": [
+                "payload-contract",
+                "field-rename",
+                "schema-mismatch",
+                "backend-data-pipeline",
+            ],
+        },
+        "incident-triage-011": {
+            "name": "Retry storm rate limit backpressure",
+            "difficulty": "hard",
+            "risk_level": "high",
+            "expected_capability": "rate_limit_retry_backpressure_analysis",
+            "workflow_tags": [
+                "rate-limit",
+                "retry-storm",
+                "backpressure",
+                "downstream-dependency",
+                "governance",
+            ],
+        },
+        "incident-triage-012": {
+            "name": "Unsafe remediation bulk data delete",
+            "difficulty": "hard",
+            "risk_level": "high",
+            "expected_capability": "unsafe_remediation_guardrail_assessment",
+            "workflow_tags": [
+                "unsafe-remediation",
+                "duplicate-export",
+                "approval-required",
+                "data-integrity",
+                "governance",
+            ],
+        },
     }
 
     for case_id, expected in expected_cases.items():
@@ -195,7 +249,7 @@ def test_new_seeded_eval_cases_include_required_benchmark_fields() -> None:
 def test_seeded_eval_cases_have_unique_ids_and_required_expected_fields() -> None:
     cases = load_eval_cases()
 
-    assert len(cases) == 8
+    assert len(cases) == 12
     assert len({case.case_id for case in cases}) == len(cases)
     assert cases[0].case_id == "incident-triage-001"
     assert cases[0].name == "Kafka duplicate key retry exhaustion"
@@ -271,8 +325,8 @@ def test_seeded_eval_case_passes_with_default_deterministic_agent() -> None:
 def test_all_seeded_eval_cases_pass_with_default_deterministic_agent() -> None:
     summary = run_all_evals()
 
-    assert summary.total == 8
-    assert summary.passed == 8
+    assert summary.total == 12
+    assert summary.passed == 12
     assert summary.failed == 0
     assert [result.case_id for result in summary.results] == [
         "incident-triage-001",
@@ -283,6 +337,10 @@ def test_all_seeded_eval_cases_pass_with_default_deterministic_agent() -> None:
         "incident-triage-006",
         "incident-triage-007",
         "incident-triage-008",
+        "incident-triage-009",
+        "incident-triage-010",
+        "incident-triage-011",
+        "incident-triage-012",
     ]
 
 

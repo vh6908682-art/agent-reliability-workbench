@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "eval_run_id": 204,
+      "created_at": "2026-06-07T12:10:00Z",
+      "total_cases": 12,
+      "passed": 11,
+      "failed": 1,
+      "pass_rate": 0.9167,
+      "avg_score": 0.91,
+      "avg_latency": 1240.0,
+      "avg_cost": 0.0018,
+      "guardrail_failure_count": 0,
+      "model_name": "deterministic_eval_llm",
+      "prompt_version": "v1",
+      "workflow_type": "incident_triage",
+      "toolset_name": "mock_incident_tools",
+      "guardrail_mode": "standard"
+    },
+    {
+      "eval_run_id": 205,
+      "created_at": "2026-06-07T12:25:00Z",
+      "total_cases": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "avg_score": 0.96,
+      "avg_latency": 1315.0,
+      "avg_cost": 0.0019,
+      "guardrail_failure_count": 0,
+      "model_name": "deterministic_eval_llm",
+      "prompt_version": "v2",
+      "workflow_type": "incident_triage",
+      "toolset_name": "mock_incident_tools",
+      "guardrail_mode": "standard"
+    }
+  ]
+}

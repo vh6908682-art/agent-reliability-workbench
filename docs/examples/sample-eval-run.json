@@ -1,0 +1,106 @@
+{
+  "total": 12,
+  "passed": 11,
+  "failed": 1,
+  "config": {
+    "eval_run_id": 204,
+    "model_name": "deterministic_eval_llm",
+    "prompt_version": "v1",
+    "workflow_type": "incident_triage",
+    "toolset_name": "mock_incident_tools",
+    "guardrail_mode": "standard",
+    "latency_ms": null,
+    "estimated_cost_usd": null
+  },
+  "results": [
+    {
+      "case_id": "incident-triage-001",
+      "name": "Kafka duplicate key retry exhaustion",
+      "category": "incident_investigation",
+      "difficulty": "medium",
+      "risk_level": "medium",
+      "expected_capability": "evidence_based_root_cause_analysis",
+      "workflow_tags": [
+        "kafka",
+        "spring-batch",
+        "duplicate-key",
+        "retry-exhaustion",
+        "backend-data-pipeline"
+      ],
+      "expected_signals": [
+        "duplicate key",
+        "retry exhaustion",
+        "idempotency"
+      ],
+      "actual_diagnosis_summary": "Duplicate key violation from replayed customer update without idempotent handling.",
+      "passed": true,
+      "score": 100,
+      "checks": [
+        {
+          "name": "structured_output_valid",
+          "passed": true,
+          "details": {
+            "validation_status": "valid"
+          }
+        },
+        {
+          "name": "expected_keywords_present",
+          "passed": true,
+          "details": {
+            "found_keywords": [
+              "duplicate key",
+              "retry exhaustion",
+              "idempotency"
+            ],
+            "missing_keywords": []
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "incident-triage-008",
+      "name": "Stale runbook unsafe offset reset",
+      "category": "incident_investigation",
+      "difficulty": "hard",
+      "risk_level": "high",
+      "expected_capability": "runbook_conflict_and_risk_assessment",
+      "workflow_tags": [
+        "runbook-conflict",
+        "consumer-lag",
+        "offset-reset",
+        "financial-events",
+        "governance"
+      ],
+      "expected_signals": [
+        "stale runbook",
+        "offset reset",
+        "approval"
+      ],
+      "actual_diagnosis_summary": "Identified consumer lag but did not explicitly call out approval for offset reset.",
+      "passed": false,
+      "score": 80,
+      "checks": [
+        {
+          "name": "structured_output_valid",
+          "passed": true,
+          "details": {
+            "validation_status": "valid"
+          }
+        },
+        {
+          "name": "expected_keywords_present",
+          "passed": false,
+          "details": {
+            "found_keywords": [
+              "offset reset"
+            ],
+            "missing_keywords": [
+              "stale runbook",
+              "approval"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

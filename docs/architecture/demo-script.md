@@ -98,6 +98,8 @@ Show:
 - expected keywords found
 - missing expected behavior
 
+If the app is not running live, use the compact sample artifacts in `docs/examples/` to show the agent run, trace, eval run, and eval comparison shapes.
+
 ## 8. Closing story
 
 AgentOps Workbench helps teams answer:

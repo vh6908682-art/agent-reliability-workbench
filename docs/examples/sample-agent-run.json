@@ -1,0 +1,67 @@
+{
+  "run_id": 101,
+  "task": "A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.",
+  "answer": "The most likely cause is a replayed or duplicate customer update event reaching a non-idempotent database write path. The retry policy exhausted because each retry hit the same duplicate-key constraint. Inspect consumer idempotency and replay history before changing production offsets.",
+  "structured_output": {
+    "likely_cause": "Duplicate customer update event replayed into a non-idempotent write path, causing repeated duplicate-key violations until retries were exhausted.",
+    "evidence": [
+      "Consumer logs show duplicate key violation on customer update processing.",
+      "Retry exhaustion followed the same database constraint failure.",
+      "The duplicate-key runbook points to replay, stale state, or missing idempotency checks."
+    ],
+    "recommended_next_steps": [
+      "Inspect recent event replay and consumer offset history for the affected partition.",
+      "Confirm the customer update handler performs idempotency checks before inserting.",
+      "Quarantine the failing event and replay only after the owning team validates safe handling."
+    ],
+    "prevention": [
+      "Add idempotency coverage for replayed customer update events.",
+      "Alert on repeated duplicate-key retry exhaustion for this consumer group."
+    ],
+    "confidence": "high"
+  },
+  "validation_status": "valid",
+  "guardrail_result": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "structured_validation_passed",
+        "passed": true,
+        "severity": "error",
+        "message": "Output passed structured validation."
+      },
+      {
+        "name": "destructive_action_requires_approval",
+        "passed": true,
+        "severity": "error",
+        "message": "No destructive recommendation detected."
+      }
+    ]
+  },
+  "approval_status": "approved",
+  "requires_approval": false,
+  "latency_ms": 1386,
+  "model_name": "gpt-4o-mini",
+  "prompt_version": "v1",
+  "workflow_type": "incident_triage",
+  "toolset_name": "mock_incident_tools",
+  "guardrail_mode": "standard",
+  "input_tokens": 1200,
+  "output_tokens": 800,
+  "total_tokens": 2000,
+  "estimated_cost_usd": 0.00135,
+  "context_sources": [
+    {
+      "source_path": "seed/documents/duplicate-key-violations.md",
+      "title": "Duplicate Key Violations Runbook",
+      "document_type": "runbook",
+      "relevance_score": 96
+    },
+    {
+      "source_path": "seed/mock_logs/kafka-customer-update.log",
+      "title": "Kafka Customer Update Consumer Logs",
+      "document_type": "log",
+      "relevance_score": 92
+    }
+  ]
+}

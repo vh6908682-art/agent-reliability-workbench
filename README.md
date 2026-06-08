@@ -93,33 +93,14 @@ The web app runs at:
 - Eval and agent layer: deterministic eval runner, prompt/config metadata, structured validation, guardrail checks
 - Infrastructure: Docker Compose
 
-## Sample Eval Comparison Output
+## Example Outputs
 
-Representative response shape from the eval comparison API:
+Sample benchmark outputs are available in `docs/examples/`:
 
-```json
-{
-  "items": [
-    {
-      "eval_run_id": 42,
-      "created_at": "2026-06-07T12:00:00Z",
-      "total_cases": 12,
-      "passed": 11,
-      "failed": 1,
-      "pass_rate": 0.9167,
-      "avg_score": 0.87,
-      "avg_latency": 1240.0,
-      "avg_cost": 0.0018,
-      "guardrail_failure_count": 0,
-      "model_name": "deterministic_eval_llm",
-      "prompt_version": "v1",
-      "workflow_type": "incident_triage",
-      "toolset_name": "mock_incident_tools",
-      "guardrail_mode": "standard"
-    }
-  ]
-}
-```
+- [Sample agent run](docs/examples/sample-agent-run.json)
+- [Sample trace](docs/examples/sample-trace.json)
+- [Sample eval run](docs/examples/sample-eval-run.json)
+- [Sample eval comparison](docs/examples/sample-eval-comparison.json)
 
 ## Screenshots
 

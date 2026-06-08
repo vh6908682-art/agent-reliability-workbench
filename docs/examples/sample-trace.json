@@ -1,0 +1,120 @@
+{
+  "run_id": 101,
+  "trace_steps": [
+    {
+      "id": 1001,
+      "step_index": 1,
+      "step_type": "retrieval",
+      "name": "Retrieve seeded incident context",
+      "input": {
+        "task": "Diagnose Kafka duplicate key retry exhaustion"
+      },
+      "output": {
+        "context_sources": [
+          {
+            "source_path": "seed/documents/duplicate-key-violations.md",
+            "title": "Duplicate Key Violations Runbook",
+            "document_type": "runbook",
+            "relevance_score": 96
+          },
+          {
+            "source_path": "seed/mock_logs/kafka-customer-update.log",
+            "title": "Kafka Customer Update Consumer Logs",
+            "document_type": "log",
+            "relevance_score": 92
+          }
+        ]
+      },
+      "latency_ms": 42,
+      "created_at": "2026-06-07T12:00:01Z"
+    },
+    {
+      "id": 1002,
+      "step_index": 2,
+      "step_type": "llm",
+      "name": "Generate incident diagnosis",
+      "input": {
+        "prompt_version": "v1",
+        "model_name": "gpt-4o-mini"
+      },
+      "output": {
+        "likely_cause": "Duplicate customer update replay into non-idempotent write path.",
+        "input_tokens": 1200,
+        "output_tokens": 800,
+        "total_tokens": 2000,
+        "estimated_cost_usd": 0.00135
+      },
+      "latency_ms": 1268,
+      "created_at": "2026-06-07T12:00:02Z"
+    },
+    {
+      "id": 1003,
+      "step_index": 3,
+      "step_type": "validation",
+      "name": "Validate structured diagnosis",
+      "input": {
+        "required_fields": [
+          "likely_cause",
+          "evidence",
+          "recommended_next_steps",
+          "prevention",
+          "confidence"
+        ]
+      },
+      "output": {
+        "validation_status": "valid",
+        "structured_output_valid": true
+      },
+      "latency_ms": 4,
+      "created_at": "2026-06-07T12:00:03Z"
+    },
+    {
+      "id": 1004,
+      "step_index": 4,
+      "step_type": "guardrail",
+      "name": "Run governance checks",
+      "input": {
+        "guardrail_mode": "standard"
+      },
+      "output": {
+        "guardrail_result": {
+          "passed": true,
+          "checks": [
+            {
+              "name": "structured_validation_passed",
+              "passed": true,
+              "severity": "error",
+              "message": "Output passed structured validation."
+            },
+            {
+              "name": "destructive_action_requires_approval",
+              "passed": true,
+              "severity": "error",
+              "message": "No destructive recommendation detected."
+            }
+          ]
+        },
+        "approval_status": "approved",
+        "requires_approval": false
+      },
+      "latency_ms": 3,
+      "created_at": "2026-06-07T12:00:03Z"
+    },
+    {
+      "id": 1005,
+      "step_index": 5,
+      "step_type": "response",
+      "name": "Finalize agent run",
+      "input": {
+        "run_id": 101
+      },
+      "output": {
+        "status": "completed",
+        "validation_status": "valid",
+        "approval_status": "approved"
+      },
+      "latency_ms": 69,
+      "created_at": "2026-06-07T12:00:04Z"
+    }
+  ]
+}

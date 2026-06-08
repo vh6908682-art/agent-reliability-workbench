@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.agents.base import AgentIdentity
 from app.guardrails.checker import GuardrailResult
 from app.services.prompt_versions import DEFAULT_PROMPT_VERSION
 
@@ -37,6 +38,7 @@ class AgentRunResponse(BaseModel):
     workflow_type: str = "incident_triage"
     toolset_name: str = "mock_incident_tools"
     guardrail_mode: str = "standard"
+    agent_under_test: AgentIdentity | None = None
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
@@ -73,6 +75,7 @@ class AgentRunSummaryResponse(BaseModel):
     guardrail_status: str | None
     approval_status: ApprovalStatus | None
     requires_approval: bool
+    agent_under_test: AgentIdentity | None = None
 
 
 class TraceStepResponse(BaseModel):
@@ -107,6 +110,7 @@ class AgentRunDetailResponse(BaseModel):
     workflow_type: str
     toolset_name: str
     guardrail_mode: str
+    agent_under_test: AgentIdentity | None = None
     input_tokens: int
     output_tokens: int
     total_tokens: int

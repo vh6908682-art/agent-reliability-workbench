@@ -44,10 +44,12 @@ Response:
 - id
 - task
 - status
+- agent_under_test
 - final_answer
 - structured_output
 - validation_status
 - validation_errors
+- agent_under_test
 - latency_ms
 - estimated_cost_usd
 - created_at
@@ -92,6 +94,7 @@ Response:
 - validation_status
 - validation_errors
 - model
+- agent_under_test
 - started_at
 - completed_at
 - latency_ms

@@ -8,6 +8,8 @@ from typing import cast
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents.base import AgentIdentity
+from app.agents.reference_incident_agent import ReferenceIncidentAgent
 from app.core.config import settings
 from app.guardrails.checker import GuardrailResult
 from app.models.agent_run import AgentRun
@@ -31,6 +33,11 @@ class AgentRunFailedError(RuntimeError):
 DEFAULT_WORKFLOW_TYPE = "incident_triage"
 DEFAULT_TOOLSET_NAME = "mock_incident_tools"
 DEFAULT_GUARDRAIL_MODE = "standard"
+DEFAULT_AGENT_UNDER_TEST = AgentIdentity(
+    name=ReferenceIncidentAgent.name,
+    version=ReferenceIncidentAgent.version,
+    type=ReferenceIncidentAgent.agent_type,
+)
 
 
 def guardrails_require_approval(guardrail_result: GuardrailResult | None) -> bool:
@@ -77,6 +84,7 @@ def summary_response_for_run(run: AgentRun) -> AgentRunSummaryResponse:
         guardrail_status=guardrail_status_for_run(run),
         approval_status=cast(ApprovalStatus, run.approval_status) if run.approval_status else None,
         requires_approval=run.approval_required,
+        agent_under_test=DEFAULT_AGENT_UNDER_TEST,
     )
 
 
@@ -212,6 +220,7 @@ def run_and_persist_incident_triage(
         workflow_type=run.workflow_type,
         toolset_name=run.toolset_name,
         guardrail_mode=run.guardrail_mode,
+        agent_under_test=DEFAULT_AGENT_UNDER_TEST,
         input_tokens=run.input_tokens,
         output_tokens=run.output_tokens,
         total_tokens=run.total_tokens,

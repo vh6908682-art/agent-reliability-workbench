@@ -3,6 +3,7 @@
 ## Purpose
 
 Agent Reliability Workbench uses production-like incident scenarios as benchmark environments for evaluating tool-using AI agents.
+Each benchmark case is executed against an Agent Under Test. In the MVP, this is the built-in reference incident agent; future adapters can run the same cases against external or custom agents.
 
 The goal is not only to solve one incident. The goal is to measure whether an agent can investigate a realistic operational problem in a repeatable, observable, and governable way.
 

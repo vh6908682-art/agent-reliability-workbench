@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.agent_run import AgentRun
 from app.models.eval_result import EvalResult
+from app.agents.base import AgentIdentity
 from app.schemas.evals import EvalComparisonResponse, EvalComparisonRow
 
 
@@ -58,6 +59,7 @@ def _comparison_row_for_group(
         workflow_type=run.workflow_type,
         toolset_name=run.toolset_name,
         guardrail_mode=run.guardrail_mode,
+        agent_under_test=_agent_under_test_for_run(run),
     )
 
 
@@ -79,3 +81,12 @@ def _is_guardrail_failure(result: EvalResult, run: AgentRun) -> bool:
         and result.notes is not None
         and "guardrail" in result.notes.lower()
     )
+
+
+def _agent_under_test_for_run(run: AgentRun) -> AgentIdentity | None:
+    if not isinstance(run.structured_output, dict):
+        return None
+    raw_identity = run.structured_output.get("agent_under_test")
+    if not isinstance(raw_identity, dict):
+        return None
+    return AgentIdentity.model_validate(raw_identity)

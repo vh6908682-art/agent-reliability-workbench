@@ -173,6 +173,11 @@ def test_create_agent_run_persists_answer_and_trace_steps(monkeypatch, db_sessio
         "workflow_type": "incident_triage",
         "toolset_name": "mock_incident_tools",
         "guardrail_mode": "standard",
+        "agent_under_test": {
+            "name": "ReferenceIncidentAgent",
+            "version": "v1",
+            "type": "reference",
+        },
         "input_tokens": 1000,
         "output_tokens": 2000,
         "total_tokens": 3000,
@@ -264,6 +269,11 @@ def test_get_agent_run_returns_metadata_and_ordered_trace_steps(monkeypatch, db_
     assert response_body["workflow_type"] == "incident_triage"
     assert response_body["toolset_name"] == "mock_incident_tools"
     assert response_body["guardrail_mode"] == "standard"
+    assert response_body["agent_under_test"] == {
+        "name": "ReferenceIncidentAgent",
+        "version": "v1",
+        "type": "reference",
+    }
     assert response_body["input_tokens"] == 1000
     assert response_body["output_tokens"] == 2000
     assert response_body["total_tokens"] == 3000
@@ -346,6 +356,11 @@ def test_list_agent_runs_returns_recent_run_summaries(db_session) -> None:
         "guardrail_status": "failed",
         "approval_status": "pending_review",
         "requires_approval": True,
+        "agent_under_test": {
+            "name": "ReferenceIncidentAgent",
+            "version": "v1",
+            "type": "reference",
+        },
     }
     assert response_body[1]["estimated_cost_usd"] == "0.000123"
     assert response_body[1]["guardrail_status"] == "passed"

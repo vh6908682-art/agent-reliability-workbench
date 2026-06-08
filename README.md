@@ -2,6 +2,8 @@
 
 Agent Reliability Workbench is a local-first platform for benchmarking, tracing, validating, and governing tool-using AI agents.
 
+Agent Reliability Workbench benchmarks a pluggable **Agent Under Test**. The current repo includes a `ReferenceIncidentAgent` that implements the incident-investigation workflow used for local demos and benchmark validation. Future users can plug in their own agent behind the same interface and run the same benchmark/eval suite.
+
 The current benchmark environment is incident investigation. The MVP focuses on a production-like Kafka duplicate-key retry exhaustion incident so agent behavior can be inspected end to end:
 
 > run -> trace -> validate -> govern -> evaluate -> compare

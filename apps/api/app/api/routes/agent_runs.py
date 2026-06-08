@@ -16,6 +16,7 @@ from app.schemas.agent_runs import (
 )
 from app.services.agent_run_service import (
     AgentRunFailedError,
+    DEFAULT_AGENT_UNDER_TEST,
     approval_response_for_run,
     get_agent_run_approval,
     list_recent_agent_runs,
@@ -112,6 +113,7 @@ def get_agent_run(run_id: int, db: Session = Depends(get_db)) -> AgentRunDetailR
         workflow_type=run.workflow_type,
         toolset_name=run.toolset_name,
         guardrail_mode=run.guardrail_mode,
+        agent_under_test=DEFAULT_AGENT_UNDER_TEST,
         input_tokens=run.input_tokens,
         output_tokens=run.output_tokens,
         total_tokens=run.total_tokens,

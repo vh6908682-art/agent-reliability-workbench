@@ -34,6 +34,12 @@ export type IncidentDiagnosis = {
   confidence?: string;
 };
 
+export type AgentUnderTest = {
+  name: string;
+  version: string | null;
+  type: "reference" | "http_json" | "mock";
+};
+
 export type AgentRunDetailResponse = {
   run_id: number;
   task: string;
@@ -62,6 +68,7 @@ export type AgentRunDetailResponse = {
   workflow_type: string | null;
   toolset_name: string | null;
   guardrail_mode: string | null;
+  agent_under_test?: AgentUnderTest | null;
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
@@ -86,6 +93,7 @@ export type AgentRunSummaryResponse = {
   guardrail_status: string | null;
   approval_status: string | null;
   requires_approval: boolean;
+  agent_under_test?: AgentUnderTest | null;
 };
 
 export type AgentRunResponse = {
@@ -103,6 +111,7 @@ export type AgentRunResponse = {
   workflow_type?: string | null;
   toolset_name?: string | null;
   guardrail_mode?: string | null;
+  agent_under_test?: AgentUnderTest | null;
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
@@ -130,6 +139,7 @@ export type EvalRunSummary = {
   total?: number;
   passed?: number;
   failed?: number;
+  agent_under_test?: AgentUnderTest | null;
   results?: EvalCaseResult[];
 };
 
@@ -149,6 +159,7 @@ export type EvalComparisonItem = {
   workflow_type: string | null;
   toolset_name: string | null;
   guardrail_mode: string | null;
+  agent_under_test?: AgentUnderTest | null;
 };
 
 export type EvalComparisonResponse = {

@@ -1,6 +1,6 @@
 # MVP Scope
 
-AgentOps Workbench is a developer platform for running, tracing, evaluating, debugging, and safely releasing tool-using LLM agents.
+Agent Reliability Workbench is a developer platform for running, tracing, evaluating, debugging, and governing tool-using AI agents.
 
 The MVP focuses on one golden path:
 

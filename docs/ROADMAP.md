@@ -301,7 +301,7 @@ Possible future improvements:
 
 - clearer agent planning steps
 - better tool selection logic
-- prompt versioning
+- deeper prompt/version management beyond stored metadata
 - model selection
 - optional LangGraph orchestration
 - multi-step agent workflows
@@ -315,7 +315,7 @@ Add them only when they improve benchmark clarity, traceability, repeatability, 
 
 Suggested tickets:
 
-- Add prompt version metadata to runs
+- Add prompt comparison UX beyond stored metadata
 - Add model selector configuration
 - Add clearer agent step types
 - Prototype LangGraph branch behind a small isolated ticket
@@ -371,16 +371,16 @@ This stage should happen after the project is coherent and demo-ready.
 
 The next work should happen in this order:
 
-1. Finish system-of-record docs
-2. Reconcile existing architecture docs with benchmark direction
-3. Update README positioning
-4. Add scenario metadata
-5. Improve eval check descriptions and failure categories
-6. Add more eval cases for current scenario
-7. Improve trace readability
-8. Add one new incident scenario
-9. Add basic run comparison
-10. Prepare open-source polish
+1. Add first-class scenario metadata
+2. Improve eval check descriptions and failure categories
+3. Improve trace readability and evidence display
+4. Add scenario authoring guidance
+5. Add one new incident scenario with deterministic evidence
+6. Improve run and eval comparison UX
+7. Add screenshots or GIFs after the UI stabilizes
+8. Add local troubleshooting and contribution docs
+9. Evaluate whether LangGraph adds enough value to prototype
+10. Prepare hosted-demo and exportable-report designs as future tickets
 
 ## What Not To Do Next
 

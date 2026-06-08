@@ -56,7 +56,7 @@ After changes:
 
 Avoid prompts like:
 
-- Build the whole AgentOps Workbench.
+- Build the whole Agent Reliability Workbench.
 - Create backend, frontend, database, evals, and UI.
 - Make it production ready.
 - Add everything from the docs.

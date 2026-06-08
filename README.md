@@ -102,6 +102,8 @@ Sample benchmark outputs are available in `docs/examples/`:
 - [Sample eval run](docs/examples/sample-eval-run.json)
 - [Sample eval comparison](docs/examples/sample-eval-comparison.json)
 
+For a walkthrough narrative, see the [demo script](docs/DEMO_SCRIPT.md).
+
 ## Screenshots
 
 > TODO: Add screenshots or GIFs of:
@@ -154,4 +156,4 @@ Implemented work is intentionally focused on the local MVP. Future work may incl
 - Exportable benchmark reports.
 - Additional benchmark domains after incident investigation is stronger.
 
-See `docs/PROJECT_VISION.md`, `docs/BENCHMARK_SPEC.md`, `docs/EVAL_METHODOLOGY.md`, and `docs/ROADMAP.md` for the deeper product direction.
+See [Project Vision](docs/PROJECT_VISION.md), [Benchmark Spec](docs/BENCHMARK_SPEC.md), [Eval Methodology](docs/EVAL_METHODOLOGY.md), and [Roadmap](docs/ROADMAP.md) for the deeper product direction.

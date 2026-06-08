@@ -135,18 +135,18 @@ Priorities:
 
 ## Future Roadmap
 
+The current MVP already includes focused docs, multiple deterministic incident eval cases, prompt/config metadata, eval comparison, and demo polish. Future work should build on that baseline rather than re-claiming it as planned.
+
 The following are planned future improvements, not current MVP claims:
 
-- Focused docs under docs/
-- Slim AGENTS.md as a table of contents
-- Benchmark case taxonomy
-- 12 production-like benchmark incidents
-- Agent configuration tracking
-- Eval run comparison API
-- Comparison dashboard
-- Prompt version support
-- LangGraph workflow mode
-- README and demo polish for open-source presentation
+- First-class benchmark scenario metadata and taxonomy
+- Richer eval scoring rubrics and failure categories
+- Better trace comparison across runs
+- Additional benchmark domains after incident investigation is stronger
+- Optional LangGraph workflow mode if it improves traceability or repeatability
+- Hosted demo mode
+- Exportable benchmark reports
+- Scenario authoring and contributor guides
 
 ## Success Criteria
 

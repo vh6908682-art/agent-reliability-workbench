@@ -1,6 +1,6 @@
 # API Contract
 
-This document defines the initial HTTP API for AgentOps Workbench.
+This document defines the initial HTTP API for Agent Reliability Workbench.
 
 The API should stay small for the MVP and support the golden path first.
 

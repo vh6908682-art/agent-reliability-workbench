@@ -1,6 +1,6 @@
 # Eval Methodology
 
-This document defines the MVP evaluation approach for AgentOps Workbench.
+This document defines the MVP evaluation approach for Agent Reliability Workbench.
 
 The goal is not to build a perfect eval platform immediately. The goal is to show that agent quality can be tested, tracked, and debugged.
 

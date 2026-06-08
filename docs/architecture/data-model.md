@@ -1,6 +1,6 @@
 # Data Model
 
-This document defines the initial PostgreSQL data model for AgentOps Workbench.
+This document defines the initial PostgreSQL data model for Agent Reliability Workbench.
 
 The MVP schema should stay small and support the golden path first: running, tracing, validating, and evaluating an incident triage agent.
 

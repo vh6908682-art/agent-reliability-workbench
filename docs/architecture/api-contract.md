@@ -23,6 +23,58 @@ Response:
 - status
 - service
 
+## List agent targets
+
+GET /agent-targets
+
+Purpose:
+
+List the registered agents that can be benchmarked. The default system-managed `ReferenceIncidentAgent` is always ensured.
+
+Response:
+
+- id
+- name
+- agent_type
+- endpoint_url
+- auth_type
+- has_auth_token
+- version
+- description
+- is_default
+- created_at
+- updated_at
+
+The response does not include raw `auth_token` values.
+
+## Create agent target
+
+POST /agent-targets
+
+Purpose:
+
+Register an HTTP JSON agent target for future benchmark execution.
+
+Request body:
+
+- name
+- agent_type: http_json
+- endpoint_url
+- auth_type: none or bearer
+- auth_token
+- version
+- description
+
+Public creation of `reference` targets is not supported.
+
+## Get agent target
+
+GET /agent-targets/{target_id}
+
+Purpose:
+
+Read one registered agent target without exposing raw auth tokens.
+
 ## Create agent run
 
 POST /api/runs

@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents.base import AgentIdentity, AgentTask, AgentUnderTest, agent_identity
+from app.agents.reference_incident_agent import ReferenceIncidentAgent
 from app.core.config import settings
 from app.models.agent_run import AgentRun
 from app.models.eval_case import EvalCase as EvalCaseModel
@@ -70,6 +72,7 @@ class EvalRunSummary(BaseModel):
     total: int
     passed: int
     failed: int
+    agent_under_test: AgentIdentity | None = None
     results: list[EvalCaseResult]
 
 
@@ -78,14 +81,59 @@ def load_eval_cases() -> list[EvalCase]:
     return [_parse_eval_case(raw_case) for raw_case in raw_cases]
 
 
+def _resolve_agent_under_test(
+    agent_under_test: AgentUnderTest | None = None,
+    agent_loop: EvalAgentLoop | None = None,
+) -> AgentUnderTest:
+    if agent_under_test is not None:
+        return agent_under_test
+    if agent_loop is not None:
+        return ReferenceIncidentAgent(agent_loop=agent_loop)
+    return ReferenceIncidentAgent(
+        agent_loop=IncidentTriageAgentLoop(llm_client=DeterministicEvalLLMClient())
+    )
+
+
+def agent_task_from_eval_case(case: EvalCase, prompt_version: str) -> AgentTask:
+    return AgentTask(
+        case_id=case.case_id,
+        task=case.task,
+        input={
+            "incident_summary": case.task,
+            "available_evidence": [
+                {
+                    "type": "document",
+                    "title": f"Mock evidence {index}",
+                    "content": evidence,
+                }
+                for index, evidence in enumerate(case.mock_evidence, start=1)
+            ],
+            "metadata": {
+                "category": case.category,
+                "difficulty": case.difficulty,
+                "risk_level": case.risk_level,
+                "expected_capability": case.expected_capability,
+                "workflow_tags": case.workflow_tags,
+                "prompt_version": prompt_version,
+            },
+        },
+        expected_output_schema={
+            "required": ["likely_cause", "recommended_next_steps", "evidence", "confidence"]
+        },
+    )
+
+
 def run_eval_case(
     case: EvalCase,
     agent_loop: EvalAgentLoop | None = None,
+    agent_under_test: AgentUnderTest | None = None,
     prompt_version: str | None = None,
 ) -> EvalCaseResult:
     resolved_prompt_version = resolve_prompt_version(prompt_version)
-    loop = agent_loop or IncidentTriageAgentLoop(llm_client=DeterministicEvalLLMClient())
-    response = loop.run(case.task, prompt_version=resolved_prompt_version)
+    agent = _resolve_agent_under_test(agent_under_test, agent_loop)
+    agent_task = agent_task_from_eval_case(case, resolved_prompt_version)
+    agent_result = agent.run(agent_task)
+    response = agent_result.run_response
     checks = evaluate_agent_response(case, response)
     score = _score_checks(checks)
     passed = all(check.passed for check in checks) and score >= case.minimum_score
@@ -106,30 +154,33 @@ def run_eval_case(
 
 def run_all_evals(
     agent_loop: EvalAgentLoop | None = None,
+    agent_under_test: AgentUnderTest | None = None,
     prompt_version: str | None = None,
 ) -> EvalRunSummary:
     resolved_prompt_version = resolve_prompt_version(prompt_version)
+    agent = _resolve_agent_under_test(agent_under_test, agent_loop)
     results = [
-        run_eval_case(case, agent_loop=agent_loop, prompt_version=resolved_prompt_version)
+        run_eval_case(case, agent_under_test=agent, prompt_version=resolved_prompt_version)
         for case in load_eval_cases()
     ]
-    return summarize_eval_results(results)
+    return summarize_eval_results(results, agent_identity(agent))
 
 
 def run_all_evals_and_persist(
     db: Session,
     agent_loop: EvalAgentLoop | None = None,
+    agent_under_test: AgentUnderTest | None = None,
     prompt_version: str | None = None,
 ) -> EvalRunSummary:
     resolved_prompt_version = resolve_prompt_version(prompt_version)
     cases = load_eval_cases()
-    loop = agent_loop or IncidentTriageAgentLoop(llm_client=DeterministicEvalLLMClient())
+    agent = _resolve_agent_under_test(agent_under_test, agent_loop)
     results = [
-        run_eval_case(case, agent_loop=loop, prompt_version=resolved_prompt_version)
+        run_eval_case(case, agent_under_test=agent, prompt_version=resolved_prompt_version)
         for case in cases
     ]
-    summary = summarize_eval_results(results)
-    eval_run = _create_eval_run_snapshot(db, summary, loop, resolved_prompt_version)
+    summary = summarize_eval_results(results, agent_identity(agent))
+    eval_run = _create_eval_run_snapshot(db, summary, agent, resolved_prompt_version)
 
     cases_by_id = {case.case_id: case for case in cases}
     for result in results:
@@ -149,12 +200,16 @@ def run_all_evals_and_persist(
     return summary
 
 
-def summarize_eval_results(results: list[EvalCaseResult]) -> EvalRunSummary:
+def summarize_eval_results(
+    results: list[EvalCaseResult],
+    agent_under_test: AgentIdentity | None = None,
+) -> EvalRunSummary:
     passed = sum(1 for result in results if result.passed)
     return EvalRunSummary(
         total=len(results),
         passed=passed,
         failed=len(results) - passed,
+        agent_under_test=agent_under_test,
         results=results,
     )
 
@@ -668,15 +723,17 @@ def _parse_eval_case(raw_case: dict[str, Any]) -> EvalCase:
 def _create_eval_run_snapshot(
     db: Session,
     summary: EvalRunSummary,
-    agent_loop: EvalAgentLoop,
+    agent_under_test: AgentUnderTest,
     prompt_version: str,
 ) -> AgentRun:
+    agent_loop = getattr(agent_under_test, "agent_loop", None)
     llm_client = getattr(agent_loop, "llm_client", None)
     model_name = (
         getattr(llm_client, "last_model_name", None)
         or getattr(llm_client, "model", None)
         or settings.openai_model
     )
+    identity = agent_identity(agent_under_test)
     now = datetime.now(UTC)
     run = AgentRun(
         task="Benchmark eval run",
@@ -686,6 +743,7 @@ def _create_eval_run_snapshot(
             "total": summary.total,
             "passed": summary.passed,
             "failed": summary.failed,
+            "agent_under_test": identity.model_dump(),
         },
         validation_status="valid",
         guardrail_result=None,

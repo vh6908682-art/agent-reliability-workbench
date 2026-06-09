@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.agents.base import AgentIdentity
+
 
 class EvalRunRequest(BaseModel):
     prompt_version: str | None = None
@@ -23,6 +25,7 @@ class EvalComparisonRow(BaseModel):
     workflow_type: str | None
     toolset_name: str | None
     guardrail_mode: str | None
+    agent_under_test: AgentIdentity | None = None
 
 
 class EvalComparisonResponse(BaseModel):

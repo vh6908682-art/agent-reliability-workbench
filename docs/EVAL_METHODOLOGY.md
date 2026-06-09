@@ -8,6 +8,8 @@ The goal is not only to check whether the final answer sounds correct. The goal 
 
 Evaluation should make agent behavior observable, repeatable, and comparable.
 
+The evaluator judges an explicit Agent Under Test. For local demos and default evals, that target is the bundled `ReferenceIncidentAgent`, which wraps the built-in incident investigation workflow. The benchmark harness is the product; the reference agent is only the default sample subject until future adapters connect external agents.
+
 ## Core Evaluation Question
 
 For each run, the platform should answer:

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.agent_targets import router as agent_targets_router
 from app.api.routes.agent_runs import router as agent_runs_router
 from app.api.routes.evals import router as evals_router
 from app.api.routes.health import router as health_router
@@ -16,5 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(agent_runs_router)
+app.include_router(agent_targets_router)
 app.include_router(evals_router)
 app.include_router(health_router)

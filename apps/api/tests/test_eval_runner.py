@@ -550,6 +550,7 @@ def test_run_evals_endpoint_returns_summary(monkeypatch, db_session) -> None:
         "total": 1,
         "passed": 1,
         "failed": 0,
+        "agent_under_test": None,
         "results": [
             {
                 "case_id": "case-1",
@@ -633,6 +634,11 @@ def test_run_all_evals_and_persist_records_eval_config_metadata(monkeypatch, db_
     assert runs[0].workflow_type == "incident_triage"
     assert runs[0].toolset_name == "mock_incident_tools"
     assert runs[0].guardrail_mode == "standard"
+    assert runs[0].structured_output["agent_under_test"] == {
+        "name": "ReferenceIncidentAgent",
+        "version": "v1",
+        "type": "reference",
+    }
     assert len(results) == 2
     assert {result.agent_run_id for result in results} == {runs[0].id}
     assert len(eval_cases) == 2

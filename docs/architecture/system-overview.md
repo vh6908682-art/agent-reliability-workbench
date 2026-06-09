@@ -2,7 +2,8 @@
 
 Agent Reliability Workbench is a monorepo developer platform for running, tracing, evaluating, debugging, and governing tool-using AI agents.
 
-The MVP focuses on one golden path: a Developer Support / Incident Triage Agent.
+The MVP focuses on one golden path: benchmarking an incident-investigation Agent Under Test.
+The bundled `ReferenceIncidentAgent` is the default sample target for local demos; the workbench owns the benchmark cases, trace capture, validation, guardrails, scoring, and comparison around that target.
 
 Example user task:
 
@@ -12,8 +13,8 @@ Example user task:
 
 1. User opens the web app.
 2. User selects or enters an incident-style task.
-3. Backend starts an agent run.
-4. Agent reads seeded logs and documents.
+3. Backend starts an agent run against the selected Agent Under Test.
+4. The default `ReferenceIncidentAgent` reads seeded logs and documents.
 5. Agent produces:
    - diagnosis
    - likely root cause
@@ -49,11 +50,11 @@ Location: `apps/api`
 Responsibilities:
 
 - Expose HTTP endpoints for the frontend.
-- Run the custom agent loop.
+- Run the selected Agent Under Test through the backend adapter.
 - Validate final outputs with Pydantic.
 - Persist runs, trace events, tool calls, eval cases, and eval results.
 - Estimate latency and cost metadata.
-- Read seed logs and seed documents for the demo agent.
+- Read seed logs and seed documents for the bundled reference agent.
 
 ### Database
 
@@ -81,7 +82,8 @@ Planned seed folders:
 
 ## Initial backend architecture
 
-The MVP should use a simple custom agent loop before adding heavier orchestration.
+The MVP should use a simple Agent Under Test adapter before adding heavier orchestration.
+The default adapter wraps the existing incident triage loop as `ReferenceIncidentAgent`; it is the sample benchmark subject, not the benchmark harness itself.
 
 The loop should roughly be:
 

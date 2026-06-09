@@ -8,6 +8,8 @@ Agent Reliability Workbench
 
 Agent Reliability Workbench is a platform for benchmarking, observing, and governing tool-using AI agents in production-like workflows.
 
+The long-term product model is a benchmark harness around a pluggable Agent Under Test. The MVP ships with a reference incident-investigation agent so the benchmark loop can be demonstrated locally, while the interface is intended to support future user-provided agents.
+
 The current benchmark environment is incident investigation. The goal is not only to demonstrate that an agent can debug one issue. The goal is to create repeatable scenarios where different agent configurations can be evaluated on how reliably they investigate, reason, use tools, cite evidence, and recommend safe next steps.
 
 ## Product Category

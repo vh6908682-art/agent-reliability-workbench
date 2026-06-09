@@ -176,6 +176,7 @@ def test_eval_comparison_aggregates_persisted_results_and_run_metadata(db_sessio
         "workflow_type": "single_agent",
         "toolset_name": "incident_tools_v1",
         "guardrail_mode": "strict",
+        "agent_under_test": None,
     }
     assert rows[run_one.id]["created_at"] is not None
 
@@ -195,6 +196,7 @@ def test_eval_comparison_aggregates_persisted_results_and_run_metadata(db_sessio
         "workflow_type": "incident_triage",
         "toolset_name": "mock_incident_tools",
         "guardrail_mode": "standard",
+        "agent_under_test": None,
     }
     assert rows[run_two.id]["created_at"] is not None
 
@@ -226,3 +228,8 @@ def test_eval_comparison_separates_persisted_prompt_versions(monkeypatch, db_ses
     assert rows_by_prompt["v1"]["workflow_type"] == "incident_triage"
     assert rows_by_prompt["v2"]["toolset_name"] == "mock_incident_tools"
     assert rows_by_prompt["v1"]["guardrail_mode"] == "standard"
+    assert rows_by_prompt["v1"]["agent_under_test"] == {
+        "name": "ReferenceIncidentAgent",
+        "version": "v1",
+        "type": "reference",
+    }

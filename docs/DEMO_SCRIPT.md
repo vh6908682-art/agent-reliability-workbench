@@ -2,6 +2,7 @@
 
 This script is the interview and walkthrough version of the Agent Reliability Workbench demo.
 
+For the demo, the benchmark target is a built-in `ReferenceIncidentAgent`. The important idea is that the workbench is not tied to this one agent: it is designed to benchmark any agent that implements the Agent Under Test interface.
 ## Opening Pitch
 
 I built Agent Reliability Workbench to test whether AI agents can reliably investigate incidents, cite evidence, produce structured outputs, avoid unsafe recommendations, and improve across prompt, model, and configuration changes.

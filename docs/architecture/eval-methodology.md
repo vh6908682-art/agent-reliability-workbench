@@ -2,7 +2,9 @@
 
 This document defines the MVP evaluation approach for Agent Reliability Workbench.
 
-The goal is not to build a perfect eval platform immediately. The goal is to show that agent quality can be tested, tracked, and debugged.
+The goal is not to build a perfect eval platform immediately. The goal is to show that an explicit Agent Under Test can be tested, tracked, and debugged.
+
+The bundled `ReferenceIncidentAgent` is the default sample target for local demos. It uses the built-in incident investigation workflow, while the eval runner remains the benchmark harness that validates, scores, and compares the candidate output.
 
 ## MVP eval goal
 

@@ -130,3 +130,50 @@ def test_read_missing_agent_target_returns_404(db_session) -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"]["error"] == "agent_target_not_found"
+
+
+def test_reference_agent_target_test_returns_success(db_session) -> None:
+    list_response = client.get("/agent-targets")
+    target_id = list_response.json()[0]["id"]
+
+    response = client.post(f"/agent-targets/{target_id}/test")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "agent_target_id": target_id,
+        "agent_name": "ReferenceIncidentAgent",
+        "agent_type": "reference",
+        "message": "Reference agent target is available.",
+        "error": None,
+    }
+
+
+def test_http_json_agent_target_test_returns_adapter_result(monkeypatch, db_session) -> None:
+    create_response = client.post(
+        "/agent-targets",
+        json={
+            "name": "Testable Agent",
+            "agent_type": "http_json",
+            "endpoint_url": "http://localhost:9000/run",
+        },
+    )
+    target_id = create_response.json()["id"]
+    received_tasks = []
+
+    class FakeAgent:
+        def run(self, task):
+            received_tasks.append(task)
+
+    monkeypatch.setattr(
+        "app.api.routes.agent_targets.build_agent_from_target",
+        lambda target: FakeAgent(),
+    )
+
+    response = client.post(f"/agent-targets/{target_id}/test")
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert response.json()["agent_target_id"] == target_id
+    assert response.json()["agent_type"] == "http_json"
+    assert received_tasks[0].case_id == "connection-test"

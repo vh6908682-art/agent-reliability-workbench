@@ -4,13 +4,23 @@ import { useState } from "react";
 
 import { AgentRunForm } from "../components/AgentRunForm";
 import { AgentRunResult } from "../components/AgentRunResult";
+import { AgentTargetsPanel } from "../components/AgentTargetsPanel";
 import { EvalComparisonPanel } from "../components/EvalComparisonPanel";
 import { EvalRunnerPanel } from "../components/EvalRunnerPanel";
 import { RecentRunsPanel } from "../components/RecentRunsPanel";
 import { TraceViewer } from "../components/TraceViewer";
 import type { AgentRunResponse } from "../lib/api";
 
-const navItems = ["Run Agent", "Runs", "Traces", "Validation", "Evals", "Guardrails", "Approvals"];
+const navItems = [
+  "Run Agent",
+  "Runs",
+  "Traces",
+  "Validation",
+  "Agent Targets",
+  "Evals",
+  "Guardrails",
+  "Approvals"
+];
 
 export default function Home() {
   const [result, setResult] = useState<AgentRunResponse | null>(null);
@@ -76,6 +86,7 @@ export default function Home() {
           />
           <AgentRunResult result={result} />
           <TraceViewer result={result} />
+          <AgentTargetsPanel />
           <EvalRunnerPanel
             onRunComplete={() => setComparisonRefreshKey((current) => current + 1)}
           />

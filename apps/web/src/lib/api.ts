@@ -166,22 +166,116 @@ export type EvalComparisonResponse = {
   items: EvalComparisonItem[];
 };
 
+export type AgentTarget = {
+  id: number;
+  name: string;
+  agent_type: "reference" | "http_json";
+  endpoint_url?: string | null;
+  auth_type: "none" | "bearer";
+  has_auth_token?: boolean;
+  version?: string | null;
+  description?: string | null;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type AgentTargetCreate = {
+  name: string;
+  agent_type: "http_json";
+  endpoint_url: string;
+  auth_type: "none" | "bearer";
+  auth_token?: string | null;
+  version?: string | null;
+  description?: string | null;
+};
+
+export type AgentTargetTestResult = {
+  ok: boolean;
+  agent_target_id: number;
+  agent_name: string;
+  agent_type: "reference" | "http_json";
+  message: string;
+  error?: string | null;
+};
+
 type ApiErrorDetail = {
-  detail?: {
-    error?: string;
-    message?: string;
-    details?: unknown;
-  };
+  detail?:
+    | {
+        error?: string;
+        message?: string;
+        details?: unknown;
+      }
+    | Array<{
+        loc?: Array<string | number>;
+        msg?: string;
+      }>
+    | string;
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 function getErrorMessage(body: unknown, status: number, fallback: string): string {
   const detail = (body as ApiErrorDetail | null)?.detail;
-  if (detail?.message) {
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        const path = item.loc?.filter((part) => part !== "body").join(".");
+        return path && item.msg ? `${path}: ${item.msg}` : item.msg;
+      })
+      .filter(Boolean);
+    if (messages.length) {
+      return messages.join(" ");
+    }
+  }
+  if (detail && typeof detail === "object" && !Array.isArray(detail) && detail.message) {
     return detail.message;
   }
   return `${fallback} with status ${status}.`;
+}
+
+export async function listAgentTargets(): Promise<AgentTarget[]> {
+  const response = await fetch(`${API_BASE_URL}/agent-targets`);
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status, "Agent targets request failed"));
+  }
+
+  return body as AgentTarget[];
+}
+
+export async function createAgentTarget(payload: AgentTargetCreate): Promise<AgentTarget> {
+  const response = await fetch(`${API_BASE_URL}/agent-targets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status, "Agent target creation failed"));
+  }
+
+  return body as AgentTarget;
+}
+
+export async function testAgentTarget(targetId: number): Promise<AgentTargetTestResult> {
+  const response = await fetch(`${API_BASE_URL}/agent-targets/${targetId}/test`, {
+    method: "POST"
+  });
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(body, response.status, "Agent target test failed"));
+  }
+
+  return body as AgentTargetTestResult;
 }
 
 export async function createAgentRun(

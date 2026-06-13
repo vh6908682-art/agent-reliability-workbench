@@ -7,6 +7,7 @@ from app.agents.base import AgentIdentity
 
 class EvalRunRequest(BaseModel):
     prompt_version: str | None = None
+    agent_target_id: int | None = None
 
 
 class EvalComparisonRow(BaseModel):

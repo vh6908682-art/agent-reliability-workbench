@@ -40,3 +40,12 @@ class AgentTargetRead(BaseModel):
     is_default: bool
     created_at: datetime
     updated_at: datetime
+
+
+class AgentTargetTestResponse(BaseModel):
+    ok: bool
+    agent_target_id: int
+    agent_name: str
+    agent_type: str
+    message: str
+    error: str | None = None

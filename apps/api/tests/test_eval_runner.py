@@ -20,6 +20,7 @@ from app.evals.runner import (
     summarize_eval_results,
 )
 from app.main import app
+from app.models.agent_target import AgentTarget
 from app.models.agent_run import AgentRun
 from app.models.eval_case import EvalCase as EvalCaseModel
 from app.models.eval_result import EvalResult
@@ -75,6 +76,7 @@ def db_session():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    AgentTarget.__table__.create(engine)
     AgentRun.__table__.create(engine)
     EvalCaseModel.__table__.create(engine)
     EvalResult.__table__.create(engine)
@@ -601,6 +603,67 @@ def test_run_evals_endpoint_accepts_prompt_version(monkeypatch, db_session) -> N
 
     assert response.status_code == 200
     assert received_prompt_versions == ["v2"]
+
+
+def test_run_evals_endpoint_accepts_agent_target_id(monkeypatch, db_session) -> None:
+    target = AgentTarget(
+        name="External Agent",
+        agent_type="http_json",
+        endpoint_url="http://localhost:9000/run",
+        auth_type="none",
+        version="v1",
+        is_default=False,
+    )
+    db_session.add(target)
+    db_session.commit()
+    db_session.refresh(target)
+
+    expected_summary = summarize_eval_results(
+        [
+            EvalCaseResult(
+                case_id="case-1",
+                name="Passing case",
+                passed=True,
+                score=100,
+                checks=[EvalCheckResult(name="structured_output_valid", passed=True)],
+            )
+        ]
+    )
+    received_agent_names: list[str] = []
+
+    class FakeAgent:
+        name = "External Agent"
+        version = "v1"
+        agent_type = "http_json"
+
+    def fake_run_all_evals_and_persist(
+        db,
+        prompt_version: str | None = None,
+        agent_under_test=None,
+    ) -> EvalRunSummary:
+        received_agent_names.append(agent_under_test.name)
+        return expected_summary
+
+    monkeypatch.setattr(
+        "app.api.routes.evals.run_all_evals_and_persist",
+        fake_run_all_evals_and_persist,
+    )
+    monkeypatch.setattr(
+        "app.api.routes.evals.build_agent_from_target",
+        lambda selected_target: FakeAgent(),
+    )
+
+    response = client.post("/evals/run", json={"agent_target_id": target.id})
+
+    assert response.status_code == 200
+    assert received_agent_names == ["External Agent"]
+
+
+def test_run_evals_endpoint_returns_404_for_missing_agent_target(db_session) -> None:
+    response = client.post("/evals/run", json={"agent_target_id": 999})
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["error"] == "agent_target_not_found"
 
 
 def test_run_all_evals_and_persist_records_eval_config_metadata(monkeypatch, db_session) -> None:

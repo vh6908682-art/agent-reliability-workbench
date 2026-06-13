@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { getEvalComparison, type EvalComparisonItem } from "../lib/api";
+import { getEvalComparison, type AgentUnderTest, type EvalComparisonItem } from "../lib/api";
 
 const EMPTY = "n/a";
 
@@ -12,6 +12,19 @@ type EvalComparisonPanelProps = {
 
 function formatText(value?: string | null): string {
   return value || EMPTY;
+}
+
+function formatAgentType(value?: AgentUnderTest["type"] | null): string {
+  if (!value) {
+    return EMPTY;
+  }
+  if (value === "reference") {
+    return "Built-in sample";
+  }
+  if (value === "http_json") {
+    return "HTTP JSON";
+  }
+  return value.replaceAll("_", " ");
 }
 
 function formatDate(value?: string | null): string {
@@ -71,6 +84,18 @@ function ConfigSummary({ item }: { item: EvalComparisonItem }) {
       </div>
       <div className="mt-1 text-xs text-slate-500">{formatDate(item.created_at)}</div>
       <dl className="mt-2 grid gap-x-3 gap-y-1 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        <div>
+          <dt className="font-semibold text-slate-500">Agent</dt>
+          <dd>{formatText(item.agent_under_test?.name)}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Agent type</dt>
+          <dd>{formatAgentType(item.agent_under_test?.type)}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Agent version</dt>
+          <dd>{formatText(item.agent_under_test?.version)}</dd>
+        </div>
         <div>
           <dt className="font-semibold text-slate-500">Model</dt>
           <dd>{formatText(item.model_name)}</dd>

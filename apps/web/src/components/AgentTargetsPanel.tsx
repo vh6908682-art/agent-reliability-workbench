@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import {
+  DEFAULT_REFERENCE_AGENT_TARGET,
+  DEFAULT_REFERENCE_AGENT_TARGET_ID,
   createAgentTarget,
+  isApiUnavailableError,
   listAgentTargets,
   testAgentTarget,
   type AgentTarget,
@@ -48,6 +51,7 @@ export function AgentTargetsPanel() {
   const [targets, setTargets] = useState<AgentTarget[]>([]);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isUsingDefaultFallback, setIsUsingDefaultFallback] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<number, AgentTargetTestResult>>({});
@@ -58,12 +62,20 @@ export function AgentTargetsPanel() {
 
   async function loadTargets() {
     setLoadError(null);
+    setIsUsingDefaultFallback(false);
     setIsLoading(true);
 
     try {
       setTargets(await listAgentTargets());
     } catch (caught) {
-      setLoadError(caught instanceof Error ? caught.message : "Agent targets could not be loaded.");
+      if (isApiUnavailableError(caught)) {
+        setTargets([DEFAULT_REFERENCE_AGENT_TARGET]);
+        setIsUsingDefaultFallback(true);
+      } else {
+        setLoadError(
+          caught instanceof Error ? caught.message : "Agent targets could not be loaded."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +86,7 @@ export function AgentTargetsPanel() {
 
     async function loadCurrentTargets() {
       setLoadError(null);
+      setIsUsingDefaultFallback(false);
       setIsLoading(true);
 
       try {
@@ -83,9 +96,14 @@ export function AgentTargetsPanel() {
         }
       } catch (caught) {
         if (isCurrent) {
-          setLoadError(
-            caught instanceof Error ? caught.message : "Agent targets could not be loaded."
-          );
+          if (isApiUnavailableError(caught)) {
+            setTargets([DEFAULT_REFERENCE_AGENT_TARGET]);
+            setIsUsingDefaultFallback(true);
+          } else {
+            setLoadError(
+              caught instanceof Error ? caught.message : "Agent targets could not be loaded."
+            );
+          }
         }
       } finally {
         if (isCurrent) {
@@ -188,6 +206,13 @@ export function AgentTargetsPanel() {
         </div>
       ) : null}
 
+      {isUsingDefaultFallback ? (
+        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          Showing the built-in ReferenceIncidentAgent default. Start the API service to load or add
+          external HTTP JSON targets.
+        </div>
+      ) : null}
+
       {!isLoading && !loadError && targets.length === 0 ? (
         <p className="mt-4 rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
           No agent targets registered yet.
@@ -200,6 +225,8 @@ export function AgentTargetsPanel() {
             const result = testResults[target.id];
             const testError = testErrors[target.id];
             const isTesting = testingTargetId === target.id;
+            const isFallbackTarget =
+              isUsingDefaultFallback && target.id === DEFAULT_REFERENCE_AGENT_TARGET_ID;
 
             return (
               <article
@@ -225,14 +252,16 @@ export function AgentTargetsPanel() {
                       </p>
                     ) : null}
                   </div>
-                  <button
-                    className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400 sm:w-auto"
-                    disabled={isTesting}
-                    onClick={() => void handleTestTarget(target.id)}
-                    type="button"
-                  >
-                    {isTesting ? "Testing..." : "Test Connection"}
-                  </button>
+                  {!isFallbackTarget ? (
+                    <button
+                      className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400 sm:w-auto"
+                      disabled={isTesting}
+                      onClick={() => void handleTestTarget(target.id)}
+                      type="button"
+                    >
+                      {isTesting ? "Testing..." : "Test Connection"}
+                    </button>
+                  ) : null}
                 </div>
 
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">

@@ -143,6 +143,11 @@ export type EvalRunSummary = {
   results?: EvalCaseResult[];
 };
 
+export type EvalRunRequest = {
+  prompt_version?: PromptVersion;
+  agent_target_id?: number;
+};
+
 export type EvalComparisonItem = {
   eval_run_id: number;
   created_at: string;
@@ -178,6 +183,20 @@ export type AgentTarget = {
   is_default: boolean;
   created_at?: string;
   updated_at?: string;
+};
+
+export const DEFAULT_REFERENCE_AGENT_TARGET_ID = 0;
+
+export const DEFAULT_REFERENCE_AGENT_TARGET: AgentTarget = {
+  id: DEFAULT_REFERENCE_AGENT_TARGET_ID,
+  name: "ReferenceIncidentAgent",
+  agent_type: "reference",
+  endpoint_url: null,
+  auth_type: "none",
+  has_auth_token: false,
+  version: "v1",
+  description: "Built-in sample incident-response agent used for local demos.",
+  is_default: true
 };
 
 export type AgentTargetCreate = {
@@ -235,6 +254,20 @@ function getErrorMessage(body: unknown, status: number, fallback: string): strin
     return detail.message;
   }
   return `${fallback} with status ${status}.`;
+}
+
+export function isApiUnavailableError(caught: unknown): boolean {
+  if (!(caught instanceof Error)) {
+    return false;
+  }
+
+  return (
+    caught instanceof TypeError ||
+    caught.message === "Failed to fetch" ||
+    caught.message === "fetch failed" ||
+    caught.message === "Load failed" ||
+    caught.message.includes("NetworkError")
+  );
 }
 
 export async function listAgentTargets(): Promise<AgentTarget[]> {
@@ -337,13 +370,13 @@ export async function listAgentRuns(): Promise<AgentRunSummaryResponse[]> {
   return body as AgentRunSummaryResponse[];
 }
 
-export async function runEvals(promptVersion: PromptVersion = "v1"): Promise<EvalRunSummary> {
+export async function runEvals(payload: EvalRunRequest = { prompt_version: "v1" }): Promise<EvalRunSummary> {
   const response = await fetch(`${API_BASE_URL}/evals/run`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ prompt_version: promptVersion })
+    body: JSON.stringify(payload)
   });
   const body = (await response.json().catch(() => null)) as unknown;
 

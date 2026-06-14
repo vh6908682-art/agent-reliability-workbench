@@ -19,7 +19,7 @@ function formatAgentType(value?: AgentUnderTest["type"] | null): string {
     return EMPTY;
   }
   if (value === "reference") {
-    return "Built-in sample";
+    return "Built-in reference";
   }
   if (value === "http_json") {
     return "HTTP JSON";
@@ -167,7 +167,8 @@ export function EvalComparisonPanel({ refreshKey = 0 }: EvalComparisonPanelProps
           </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-950">Eval Comparison</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Compare recent eval run quality, latency, cost, and guardrail outcomes.
+            Compare recent eval runs by Agent Target, prompt/config metadata, quality, latency,
+            cost, and guardrail outcomes.
           </p>
         </div>
         {isLoading ? <p className="text-sm text-slate-500">Loading comparison...</p> : null}

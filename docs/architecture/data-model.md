@@ -2,13 +2,13 @@
 
 This document defines the initial PostgreSQL data model for Agent Reliability Workbench.
 
-The MVP schema should stay small and support the golden path first: running, tracing, validating, and evaluating an incident triage agent.
+The MVP schema should stay small and support the golden path first: running, tracing, validating, and evaluating incident-investigation Agent Targets.
 
 ## Tables
 
 ## agent_runs
 
-Represents one user-triggered agent execution.
+Represents one user-triggered agent execution or persisted eval run snapshot.
 
 Columns:
 
@@ -24,6 +24,9 @@ Columns:
 - completed_at
 - latency_ms
 - estimated_cost_usd
+- agent_name
+- agent_version
+- agent_type
 - created_at
 
 Statuses:
@@ -121,12 +124,31 @@ Columns:
 - notes
 - created_at
 
+## agent_targets
+
+Represents a benchmarkable Agent Under Test.
+
+Columns:
+
+- id
+- name
+- agent_type
+- endpoint_url
+- auth_type
+- auth_token
+- version
+- description
+- is_default
+- created_at
+- updated_at
+
 ## Relationships
 
 - One agent_run has many trace_events.
 - One agent_run has many tool_calls.
 - One eval_case has many eval_results.
 - One eval_result may reference one agent_run.
+- One agent_target can be selected for agent runs and eval runs.
 
 ## JSON fields
 

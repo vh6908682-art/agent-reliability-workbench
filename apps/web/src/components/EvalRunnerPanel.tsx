@@ -23,7 +23,7 @@ type EvalRunnerPanelProps = {
 function targetOptionLabel(target: AgentTarget): string {
   const version = target.version || "n/a";
   if (target.agent_type === "reference") {
-    return `${target.name} ${version} - built-in sample`;
+    return `${target.name} ${version} - built-in reference`;
   }
 
   return `${target.name} ${version} - HTTP JSON endpoint`;
@@ -39,7 +39,7 @@ function defaultTargetId(targets: AgentTarget[]): number | null {
 
 function formatAgentType(type: AgentUnderTest["type"]): string {
   if (type === "reference") {
-    return "Built-in sample";
+    return "Built-in reference";
   }
   if (type === "http_json") {
     return "HTTP JSON";
@@ -153,7 +153,8 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
           </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-950">Eval Results</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Run the golden-path incident triage checks and review case-level failures.
+            Benchmark the selected Agent Target against deterministic incident cases and review
+            case-level failures.
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
@@ -177,7 +178,7 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
                   </option>
                 ))
               ) : (
-                <option value="">ReferenceIncidentAgent v1 - built-in sample</option>
+                <option value="">ReferenceIncidentAgent v1 - built-in reference</option>
               )}
             </select>
           </label>

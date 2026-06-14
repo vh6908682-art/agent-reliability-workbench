@@ -8,7 +8,7 @@ Agent Reliability Workbench
 
 Agent Reliability Workbench is a platform for benchmarking, observing, and governing tool-using AI agents in production-like workflows.
 
-The long-term product model is a benchmark harness around a pluggable Agent Under Test. The MVP ships with a reference incident-investigation agent so the benchmark loop can be demonstrated locally, while the interface is intended to support future user-provided agents.
+The product model is a benchmark harness around a pluggable Agent Under Test. The current MVP includes a reference incident-investigation agent so the benchmark loop can be demonstrated locally, and it supports external HTTP JSON agent targets for teams that want to benchmark their own agent endpoint.
 
 The current benchmark environment is incident investigation. The goal is not only to demonstrate that an agent can debug one issue. The goal is to create repeatable scenarios where different agent configurations can be evaluated on how reliably they investigate, reason, use tools, cite evidence, and recommend safe next steps.
 
@@ -59,6 +59,7 @@ At a high level, it includes:
 - Eval result display
 - Recent runs
 - Latency, token, and estimated cost metadata where implemented
+- Agent Target registry with the bundled reference agent and HTTP JSON targets
 - Incident triage demo flow
 
 This MVP should be treated as the first working slice of the broader reliability workbench.
@@ -156,6 +157,7 @@ The project is successful if a user can run benchmark incidents and clearly see:
 
 - What the agent did
 - Which tools it used
+- Which Agent Target was benchmarked
 - What evidence it inspected
 - What diagnosis it produced
 - Whether the output passed validation
@@ -163,7 +165,7 @@ The project is successful if a user can run benchmark incidents and clearly see:
 - Whether review/approval was needed
 - How much the run cost
 - How long the run took
-- How different agent configurations compare over time
+- How different prompts, configs, and Agent Targets compare over time
 
 ## Guiding Principle
 

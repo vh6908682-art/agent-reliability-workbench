@@ -33,7 +33,7 @@ const DEFAULT_FORM: FormState = {
 
 function targetKindLabel(target: AgentTarget): string {
   if (target.agent_type === "reference") {
-    return "Built-in sample agent";
+    return "Built-in reference agent";
   }
 
   return "External HTTP JSON agent";
@@ -193,8 +193,8 @@ export function AgentTargetsPanel() {
           </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-950">Agent Targets</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            ARW benchmarks explicit Agent Targets. The ReferenceIncidentAgent is the built-in
-            sample target for local demos. Add an HTTP JSON endpoint to benchmark your own agent.
+            ARW benchmarks explicit Agent Targets. The ReferenceIncidentAgent is the default
+            built-in reference target. Add an HTTP JSON endpoint to benchmark your own agent.
           </p>
         </div>
         {isLoading ? <p className="text-sm text-slate-500">Loading agent targets...</p> : null}

@@ -3,8 +3,8 @@
 ## Purpose
 
 Agent Reliability Workbench uses production-like incident scenarios as benchmark environments for evaluating tool-using AI agents.
-Each benchmark case is executed against an Agent Under Test. In the MVP, this is the built-in reference incident agent; future adapters can run the same cases against external or custom agents.
-The backend represents the selected agent as an Agent Target. The default system-managed target is `ReferenceIncidentAgent`, and future HTTP JSON targets allow external agents to be registered without changing the benchmark harness.
+Each benchmark case is executed against an Agent Under Test. The default target is the built-in `ReferenceIncidentAgent`, and the same cases can run against registered external HTTP JSON agents.
+The backend represents the selected agent as an Agent Target. The default system-managed target is `ReferenceIncidentAgent`, and HTTP JSON targets allow external agents to be registered without changing the benchmark harness.
 
 The goal is not only to solve one incident. The goal is to measure whether an agent can investigate a realistic operational problem in a repeatable, observable, and governable way.
 
@@ -18,7 +18,7 @@ Each benchmark scenario should test the agent's ability to:
 - pass deterministic validation checks
 - respect guardrails
 - expose reasoning through traces
-- support repeatable evaluation across runs, prompts, and models
+- support repeatable evaluation across Agent Targets, prompts, models, and configs
 
 ## Benchmark Philosophy
 

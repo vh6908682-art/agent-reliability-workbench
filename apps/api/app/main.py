@@ -7,7 +7,7 @@ from app.api.routes.evals import router as evals_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
 
-app = FastAPI(title="AgentOps Workbench API")
+app = FastAPI(title="Agent Reliability Workbench API")
 app.state.settings = settings
 app.add_middleware(
     CORSMiddleware,

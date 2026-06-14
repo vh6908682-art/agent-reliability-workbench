@@ -10,6 +10,7 @@ import {
 } from "../lib/api";
 
 type RecentRunsPanelProps = {
+  limit?: number;
   onSelectRun: (result: AgentRunResponse) => void;
   refreshKey: number;
   selectedRunId?: number | null;
@@ -75,7 +76,21 @@ function taskPreview(task: string): string {
   return task.length > 120 ? `${task.slice(0, 117)}...` : task;
 }
 
+function sortNewestFirst(runs: AgentRunSummaryResponse[]): AgentRunSummaryResponse[] {
+  return [...runs].sort((left, right) => {
+    const leftTime = new Date(left.created_at).getTime();
+    const rightTime = new Date(right.created_at).getTime();
+
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+      return right.run_id - left.run_id;
+    }
+
+    return rightTime - leftTime;
+  });
+}
+
 export function RecentRunsPanel({
+  limit = 5,
   onSelectRun,
   refreshKey,
   selectedRunId
@@ -94,7 +109,7 @@ export function RecentRunsPanel({
       try {
         const recentRuns = await listAgentRuns();
         if (isCurrent) {
-          setRuns(recentRuns);
+          setRuns(sortNewestFirst(recentRuns).slice(0, limit));
         }
       } catch (caught) {
         if (isCurrent) {
@@ -112,7 +127,7 @@ export function RecentRunsPanel({
     return () => {
       isCurrent = false;
     };
-  }, [refreshKey]);
+  }, [limit, refreshKey]);
 
   async function handleSelectRun(runId: number) {
     setError(null);
@@ -149,9 +164,13 @@ export function RecentRunsPanel({
       <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Run history
+            Recent history
           </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-950">Recent Runs</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Showing the {limit} newest persisted runs. Selecting one promotes it into the current
+            review panels above.
+          </p>
         </div>
         {isLoading ? <p className="text-sm text-slate-500">Loading recent runs...</p> : null}
       </div>
@@ -164,7 +183,7 @@ export function RecentRunsPanel({
 
       {!isLoading && runs.length === 0 ? (
         <p className="mt-4 rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
-          No recent runs found.
+          No recent run history yet.
         </p>
       ) : null}
 
@@ -187,7 +206,7 @@ export function RecentRunsPanel({
               return (
                 <button
                   className={`grid w-full gap-3 px-3 py-3 text-left text-sm transition hover:bg-slate-50 lg:grid-cols-[90px_1.4fr_110px_150px_100px_120px_120px] ${
-                    isSelected ? "bg-slate-50" : "bg-white"
+                    isSelected ? "bg-slate-50 ring-1 ring-inset ring-slate-300" : "bg-white"
                   }`}
                   disabled={isLoadingDetail}
                   key={run.run_id}

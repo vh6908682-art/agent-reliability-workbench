@@ -18,6 +18,8 @@ import { EvalResultCard } from "./EvalResultCard";
 
 type EvalRunnerPanelProps = {
   onRunComplete?: () => void;
+  onSelectedAgentTargetChange?: (targetId: number | null) => void;
+  selectedAgentTargetId?: number | null;
 };
 
 function targetOptionLabel(target: AgentTarget): string {
@@ -44,7 +46,10 @@ function formatAgentType(type: AgentUnderTest["type"]): string {
   if (type === "http_json") {
     return "HTTP JSON";
   }
-  return type.replaceAll("_", " ");
+  if (type === "mock") {
+    return "Benchmark target";
+  }
+  return "Benchmark target";
 }
 
 function AgentIdentitySummary({ agent }: { agent?: AgentUnderTest | null }) {
@@ -69,11 +74,17 @@ function AgentIdentitySummary({ agent }: { agent?: AgentUnderTest | null }) {
   );
 }
 
-export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
+export function EvalRunnerPanel({
+  onRunComplete,
+  onSelectedAgentTargetChange,
+  selectedAgentTargetId
+}: EvalRunnerPanelProps) {
   const [result, setResult] = useState<EvalRunSummary | null>(null);
   const [promptVersion, setPromptVersion] = useState<PromptVersion>("v1");
   const [agentTargets, setAgentTargets] = useState<AgentTarget[]>([]);
-  const [selectedAgentTargetId, setSelectedAgentTargetId] = useState<number | null>(null);
+  const [localSelectedAgentTargetId, setLocalSelectedAgentTargetId] = useState<number | null>(
+    selectedAgentTargetId ?? null
+  );
   const [targetsError, setTargetsError] = useState<string | null>(null);
   const [isLoadingTargets, setIsLoadingTargets] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,17 +104,20 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
         }
 
         setAgentTargets(targets);
-        setSelectedAgentTargetId((current) => {
+        setLocalSelectedAgentTargetId((current) => {
           if (current != null && targets.some((target) => target.id === current)) {
             return current;
           }
-          return defaultTargetId(targets);
+          const nextTargetId = defaultTargetId(targets);
+          onSelectedAgentTargetChange?.(nextTargetId);
+          return nextTargetId;
         });
       } catch (caught) {
         if (isCurrent) {
           if (isApiUnavailableError(caught)) {
             setAgentTargets([DEFAULT_REFERENCE_AGENT_TARGET]);
-            setSelectedAgentTargetId(null);
+            setLocalSelectedAgentTargetId(DEFAULT_REFERENCE_AGENT_TARGET_ID);
+            onSelectedAgentTargetChange?.(DEFAULT_REFERENCE_AGENT_TARGET_ID);
           } else {
             setTargetsError(
               caught instanceof Error ? caught.message : "Agent targets could not be loaded."
@@ -122,7 +136,18 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [onSelectedAgentTargetChange]);
+
+  useEffect(() => {
+    if (selectedAgentTargetId !== undefined) {
+      setLocalSelectedAgentTargetId(selectedAgentTargetId);
+    }
+  }, [selectedAgentTargetId]);
+
+  function handleSelectAgentTarget(targetId: number | null) {
+    setLocalSelectedAgentTargetId(targetId);
+    onSelectedAgentTargetChange?.(targetId);
+  }
 
   async function handleRunEvals() {
     setError(null);
@@ -131,7 +156,10 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
     try {
       const nextResult = await runEvals({
         prompt_version: promptVersion,
-        agent_target_id: selectedAgentTargetId ?? undefined
+        agent_target_id:
+          localSelectedAgentTargetId === DEFAULT_REFERENCE_AGENT_TARGET_ID
+            ? undefined
+            : localSelectedAgentTargetId ?? undefined
       });
       setResult(nextResult);
       onRunComplete?.();
@@ -143,9 +171,10 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
   }
 
   const results = result?.results ?? [];
+  const selectedTarget = agentTargets.find((target) => target.id === localSelectedAgentTargetId);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" id="evals">
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -156,6 +185,10 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
             Benchmark the selected Agent Target against deterministic incident cases and review
             case-level failures.
           </p>
+          <p className="mt-2 text-sm font-medium text-slate-800">
+            Current target: {selectedTarget?.name ?? "ReferenceIncidentAgent"} / Prompt{" "}
+            {promptVersion}
+          </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
           <label className="block">
@@ -163,22 +196,19 @@ export function EvalRunnerPanel({ onRunComplete }: EvalRunnerPanelProps) {
             <select
               className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:w-72"
               disabled={isLoading || isLoadingTargets}
-              onChange={(event) =>
-                setSelectedAgentTargetId(event.target.value ? Number(event.target.value) : null)
-              }
-              value={selectedAgentTargetId ?? ""}
+              onChange={(event) => handleSelectAgentTarget(Number(event.target.value))}
+              value={localSelectedAgentTargetId ?? ""}
             >
               {agentTargets.length ? (
                 agentTargets.map((target) => (
-                  <option
-                    key={target.id}
-                    value={target.id === DEFAULT_REFERENCE_AGENT_TARGET_ID ? "" : target.id}
-                  >
+                  <option key={target.id} value={target.id}>
                     {targetOptionLabel(target)}
                   </option>
                 ))
               ) : (
-                <option value="">ReferenceIncidentAgent v1 - built-in reference</option>
+                <option value={DEFAULT_REFERENCE_AGENT_TARGET_ID}>
+                  ReferenceIncidentAgent v1 - built-in reference
+                </option>
               )}
             </select>
           </label>

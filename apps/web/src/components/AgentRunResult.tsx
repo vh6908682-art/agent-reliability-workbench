@@ -46,13 +46,18 @@ function ContextSources({ sources }: { sources?: ContextSource[] }) {
   );
 }
 
+function formatStatus(value?: string | null): string {
+  return value?.replaceAll("_", " ") ?? "not returned";
+}
+
 export function AgentRunResult({ result }: AgentRunResultProps) {
   if (!result) {
     return (
       <section className="rounded-lg border border-dashed border-slate-300 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-950">Triage Result</h2>
+        <h2 className="text-lg font-semibold text-slate-950">Current Triage Result</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Run the incident triage agent to see the structured diagnosis here.
+          Run the incident triage agent to make a result active here. Older runs stay in Recent
+          History below.
         </p>
       </section>
     );
@@ -64,12 +69,23 @@ export function AgentRunResult({ result }: AgentRunResultProps) {
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Triage Result</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Current Triage Result</h2>
           <p className="mt-1 text-sm text-slate-500">Run ID: {result.run_id ?? "not returned"}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
           <span className="rounded-md bg-slate-100 px-2.5 py-1 text-slate-700">
-            Validation: {result.validation_status ?? "not returned"}
+            Validation: {formatStatus(result.validation_status)}
+          </span>
+          <span className="rounded-md bg-slate-100 px-2.5 py-1 text-slate-700">
+            Guardrail:{" "}
+            {result.guardrail_result?.passed == null
+              ? "not returned"
+              : result.guardrail_result.passed
+                ? "passed"
+                : "failed"}
+          </span>
+          <span className="rounded-md bg-slate-100 px-2.5 py-1 text-slate-700">
+            Approval: {formatStatus(result.approval_status)}
           </span>
           <span className="rounded-md bg-slate-100 px-2.5 py-1 text-slate-700">
             Confidence: {diagnosis?.confidence ?? "not returned"}

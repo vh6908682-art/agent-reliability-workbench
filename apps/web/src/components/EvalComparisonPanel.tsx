@@ -7,6 +7,7 @@ import { getEvalComparison, type AgentUnderTest, type EvalComparisonItem } from 
 const EMPTY = "n/a";
 
 type EvalComparisonPanelProps = {
+  limit?: number;
   refreshKey?: number;
 };
 
@@ -24,7 +25,10 @@ function formatAgentType(value?: AgentUnderTest["type"] | null): string {
   if (value === "http_json") {
     return "HTTP JSON";
   }
-  return value.replaceAll("_", " ");
+  if (value === "mock") {
+    return "Benchmark target";
+  }
+  return "Benchmark target";
 }
 
 function formatDate(value?: string | null): string {
@@ -76,6 +80,19 @@ function formatCost(value?: number | null): string {
   return `$${value.toFixed(6)}`;
 }
 
+function sortNewestFirst(items: EvalComparisonItem[]): EvalComparisonItem[] {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left.created_at).getTime();
+    const rightTime = new Date(right.created_at).getTime();
+
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+      return right.eval_run_id - left.eval_run_id;
+    }
+
+    return rightTime - leftTime;
+  });
+}
+
 function ConfigSummary({ item }: { item: EvalComparisonItem }) {
   return (
     <div>
@@ -121,7 +138,7 @@ function ConfigSummary({ item }: { item: EvalComparisonItem }) {
   );
 }
 
-export function EvalComparisonPanel({ refreshKey = 0 }: EvalComparisonPanelProps) {
+export function EvalComparisonPanel({ limit = 5, refreshKey = 0 }: EvalComparisonPanelProps) {
   const [items, setItems] = useState<EvalComparisonItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +153,7 @@ export function EvalComparisonPanel({ refreshKey = 0 }: EvalComparisonPanelProps
       try {
         const comparison = await getEvalComparison();
         if (isCurrent) {
-          setItems(comparison.items ?? []);
+          setItems(sortNewestFirst(comparison.items ?? []).slice(0, limit));
         }
       } catch (caught) {
         if (isCurrent) {
@@ -156,7 +173,7 @@ export function EvalComparisonPanel({ refreshKey = 0 }: EvalComparisonPanelProps
     return () => {
       isCurrent = false;
     };
-  }, [refreshKey]);
+  }, [limit, refreshKey]);
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -165,10 +182,10 @@ export function EvalComparisonPanel({ refreshKey = 0 }: EvalComparisonPanelProps
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Benchmark comparison
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-slate-950">Eval Comparison</h2>
+          <h2 className="mt-2 text-lg font-semibold text-slate-950">Recent Eval Comparison</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Compare recent eval runs by Agent Target, prompt/config metadata, quality, latency,
-            cost, and guardrail outcomes.
+            Showing the {limit} newest eval records. Run a fresh benchmark eval above to make the
+            newest comparison row reflect the active demo.
           </p>
         </div>
         {isLoading ? <p className="text-sm text-slate-500">Loading comparison...</p> : null}
@@ -201,9 +218,17 @@ export function EvalComparisonPanel({ refreshKey = 0 }: EvalComparisonPanelProps
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
-              {items.map((item) => (
-                <tr key={item.eval_run_id} className="align-top">
+              {items.map((item, index) => (
+                <tr
+                  key={item.eval_run_id}
+                  className={`align-top ${index === 0 ? "bg-slate-50" : "bg-white"}`}
+                >
                   <td className="max-w-[300px] px-3 py-3">
+                    {index === 0 ? (
+                      <div className="mb-2 inline-flex rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        Newest
+                      </div>
+                    ) : null}
                     <ConfigSummary item={item} />
                   </td>
                   <td className="px-3 py-3 font-semibold text-slate-950">

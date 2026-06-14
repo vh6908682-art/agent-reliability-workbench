@@ -1,5 +1,5 @@
 {
-  "name": "@agentops-workbench/web",
+  "name": "@agent-reliability-workbench/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {

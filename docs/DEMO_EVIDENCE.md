@@ -78,7 +78,7 @@ Expected shape:
 ```json
 {
   "status": "ok",
-  "service": "agentops-workbench-api"
+  "service": "agent-reliability-workbench-api"
 }
 ```
 

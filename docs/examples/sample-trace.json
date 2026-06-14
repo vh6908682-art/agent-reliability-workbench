@@ -18,9 +18,9 @@
             "relevance_score": 96
           },
           {
-            "source_path": "seed/mock_logs/kafka-customer-update.log",
+            "source_path": "seed/mock_logs/customer-event-consumer.log",
             "title": "Kafka Customer Update Consumer Logs",
-            "document_type": "log",
+            "document_type": "mock_log",
             "relevance_score": 92
           }
         ]

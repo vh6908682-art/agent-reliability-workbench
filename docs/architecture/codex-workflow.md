@@ -42,7 +42,7 @@ Goal:
 Create a minimal FastAPI app with a health endpoint.
 
 Acceptance criteria:
-- GET /api/health returns status and service.
+- GET /health returns status and service.
 - App starts locally.
 - Keep changes small.
 - Do not implement unrelated endpoints.

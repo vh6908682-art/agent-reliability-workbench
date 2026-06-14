@@ -14,7 +14,7 @@ The evaluator judges an explicit Agent Under Test. For local demos and default e
 
 For each run, the platform should answer:
 
-text id="r1h4j5" Did the agent reach a useful, evidence-backed, safe, and valid result through an inspectable process? 
+> Did the agent reach a useful, evidence-backed, safe, and valid result through an inspectable process?
 
 This means the evaluation should consider both:
 
@@ -147,7 +147,23 @@ A good eval case includes:
 
 Example structure:
 
-text id="rg8psu" case_id: kafka_duplicate_key_basic_diagnosis scenario_id: kafka_duplicate_key_retry_exhaustion prompt: Investigate why the account sync consumer is failing in production. expected_findings:   - duplicate-key failure appears in logs   - retry exhaustion is involved   - likely cause relates to idempotency, record identity, or migration behavior checks:   - required_fields_present   - mentions_duplicate_key   - mentions_retry_exhaustion   - includes_evidence   - avoids_unsupported_certainty   - safe_next_steps pass_threshold: 0.8 
+```yaml
+case_id: kafka_duplicate_key_basic_diagnosis
+scenario_id: kafka_duplicate_key_retry_exhaustion
+prompt: Investigate why the account sync consumer is failing in production.
+expected_findings:
+  - duplicate-key failure appears in logs
+  - retry exhaustion is involved
+  - likely cause relates to idempotency, record identity, or migration behavior
+checks:
+  - required_fields_present
+  - mentions_duplicate_key
+  - mentions_retry_exhaustion
+  - includes_evidence
+  - avoids_unsupported_certainty
+  - safe_next_steps
+pass_threshold: 0.8
+```
 
 Eval cases should be deterministic and easy to run repeatedly.
 
@@ -161,7 +177,9 @@ These checks verify that the final response includes required fields.
 
 Example:
 
-text id="bmuunf" required_fields_present 
+```text
+required_fields_present
+```
 
 ### Keyword or Concept Checks
 
@@ -184,7 +202,9 @@ These checks verify that the agent references relevant evidence.
 
 Example:
 
-text id="dhr9hw" answer references logs or tool results that support the diagnosis 
+```text
+answer references logs or tool results that support the diagnosis
+```
 
 ### Safety Checks
 
@@ -203,7 +223,9 @@ These checks verify that the agent used necessary tools.
 
 Example:
 
-text id="1l9xra" agent called search_logs before final diagnosis 
+```text
+agent called search_logs before final diagnosis
+```
 
 Tool sequence checks should be used carefully. The goal is not to force one exact path unless the scenario requires it.
 
@@ -226,13 +248,21 @@ Each eval case should produce:
 
 A simple score can be calculated as:
 
-text id="fvq5uy" score = passed_checks / total_checks 
+```text
+score = passed_checks / total_checks
+```
 
 A case passes when the score is greater than or equal to the case threshold.
 
 Example:
 
-text id="75si0k" passed_checks: 5 total_checks: 6 score: 0.83 pass_threshold: 0.80 status: passed 
+```text
+passed_checks: 5
+total_checks: 6
+score: 0.83
+pass_threshold: 0.80
+status: passed
+```
 
 ## Failure Categories
 

@@ -1,18 +1,20 @@
 # API Contract
 
-This document defines the initial HTTP API for Agent Reliability Workbench.
+This document defines the current local HTTP API for Agent Reliability Workbench.
 
-The API should stay small for the MVP and support the golden path first.
+The API stays small for the MVP and supports the reliability loop: run, trace, validate, govern, evaluate, and compare.
 
-## Base path
+## Base URL
 
-Use:
+Local development uses:
 
-- /api
+- http://localhost:8000
+
+Routes are mounted at the service root, not under an `/api` prefix.
 
 ## Health
 
-GET /api/health
+GET /health
 
 Purpose:
 
@@ -21,9 +23,9 @@ Check that the API service is running.
 Response:
 
 - status
-- service
+- service: agent-reliability-workbench-api
 
-## List agent targets
+## List Agent Targets
 
 GET /agent-targets
 
@@ -47,7 +49,7 @@ Response:
 
 The response does not include raw `auth_token` values.
 
-## Create agent target
+## Create Agent Target
 
 POST /agent-targets
 
@@ -67,7 +69,7 @@ Request body:
 
 Public creation of `reference` targets is not supported.
 
-## Get agent target
+## Get Agent Target
 
 GET /agent-targets/{target_id}
 
@@ -75,9 +77,26 @@ Purpose:
 
 Read one registered agent target without exposing raw auth tokens.
 
-## Create agent run
+## Test Agent Target
 
-POST /api/runs
+POST /agent-targets/{target_id}/test
+
+Purpose:
+
+Verify that a reference target is available or that an HTTP JSON target returns a valid structured result.
+
+Response:
+
+- ok
+- agent_target_id
+- agent_name
+- agent_type
+- message
+- error
+
+## Create Agent Run
+
+POST /agent-runs
 
 Purpose:
 
@@ -86,6 +105,7 @@ Start a new incident investigation run against the default reference Agent Targe
 Request body:
 
 - task
+- prompt_version
 
 Example task:
 
@@ -93,22 +113,30 @@ A Kafka consumer failed while processing a customer update event. Logs show dupl
 
 Response:
 
-- id
+- run_id
 - task
-- status
-- agent_under_test
-- final_answer
+- answer
 - structured_output
 - validation_status
-- validation_errors
-- agent_under_test
+- guardrail_result
+- approval_status
+- requires_approval
 - latency_ms
+- model_name
+- prompt_version
+- workflow_type
+- toolset_name
+- guardrail_mode
+- agent_under_test
+- input_tokens
+- output_tokens
+- total_tokens
 - estimated_cost_usd
-- created_at
+- context_sources
 
-## List runs
+## List Runs
 
-GET /api/runs
+GET /agent-runs
 
 Purpose:
 
@@ -116,95 +144,136 @@ Show recent agent runs in the UI.
 
 Response:
 
-- items
+- list of run summaries
 
-Each item:
+Each summary:
 
-- id
+- run_id
 - task
 - status
-- validation_status
-- latency_ms
-- estimated_cost_usd
 - created_at
+- started_at
+- completed_at
+- latency_ms
+- model_name
+- input_tokens
+- output_tokens
+- total_tokens
+- estimated_cost_usd
+- guardrail_status
+- approval_status
+- requires_approval
+- agent_under_test
 
-## Get run
+## Get Run
 
-GET /api/runs/{run_id}
+GET /agent-runs/{run_id}
 
 Purpose:
 
-Show one run with its final output and metadata.
+Show one run with its final output, metadata, approval state, and trace steps.
 
 Response:
 
-- id
+- run_id
 - task
 - status
 - final_answer
 - structured_output
 - validation_status
-- validation_errors
-- model
-- agent_under_test
+- guardrail_result
+- approval
 - started_at
 - completed_at
 - latency_ms
+- cost_usd
 - estimated_cost_usd
+- model_name
+- prompt_version
+- workflow_type
+- toolset_name
+- guardrail_mode
+- agent_under_test
+- input_tokens
+- output_tokens
+- total_tokens
 - created_at
+- updated_at
+- trace_steps
 
-## Get run trace
-
-GET /api/runs/{run_id}/trace
-
-Purpose:
-
-Show the trace timeline for a run.
-
-Response:
-
-- run_id
-- events
-
-Each event:
+Each trace step:
 
 - id
-- event_type
-- title
-- message
-- metadata
-- created_at
-
-## Get run tool calls
-
-GET /api/runs/{run_id}/tool-calls
-
-Purpose:
-
-Show tools used during a run.
-
-Response:
-
-- run_id
-- tool_calls
-
-Each tool call:
-
-- id
-- tool_name
+- step_index
+- step_type
+- name
 - input
 - output
-- status
 - latency_ms
 - created_at
 
-## List eval cases
+## Get Run Approval
 
-GET /api/eval-cases
+GET /agent-runs/{run_id}/approval
+
+Response:
+
+- run_id
+- status
+- reviewer_note
+- requires_approval
+- updated_at
+
+## Update Run Approval
+
+POST /agent-runs/{run_id}/approval
+
+Request body:
+
+- status: pending_review, approved, or blocked
+- reviewer_note
+
+Response is the same approval shape returned by `GET /agent-runs/{run_id}/approval`.
+
+## Run Eval Suite
+
+POST /evals/run
 
 Purpose:
 
-Show available benchmark eval cases.
+Run all deterministic benchmark eval cases through the selected Agent Under Test.
+
+Request body:
+
+- prompt_version
+- agent_target_id
+
+If `agent_target_id` is omitted, the backend uses the default `ReferenceIncidentAgent` target.
+
+Response:
+
+- total
+- passed
+- failed
+- agent_under_test
+- results
+
+Each result:
+
+- case_id
+- name
+- category
+- difficulty
+- risk_level
+- expected_capability
+- workflow_tags
+- passed
+- score
+- checks
+
+## Compare Eval Runs
+
+GET /evals/comparison
 
 Response:
 
@@ -212,31 +281,39 @@ Response:
 
 Each item:
 
-- id
-- name
-- task
-- expected_keywords
-- expected_failure_modes
-
-## Run eval case
-
-POST /api/eval-cases/{eval_case_id}/run
-
-Purpose:
-
-Run one eval case through the selected Agent Under Test.
-
-Response:
-
-- eval_case_id
-- run_id
+- eval_run_id
+- created_at
+- total_cases
 - passed
-- score
-- notes
+- failed
+- pass_rate
+- avg_score
+- avg_latency
+- avg_cost
+- guardrail_failure_count
+- model_name
+- prompt_version
+- workflow_type
+- toolset_name
+- guardrail_mode
+- agent_under_test
 
-## Error shape
+## External HTTP JSON Agent Contract
 
-Use one predictable error shape:
+HTTP JSON Agent Targets receive an `AgentTask` JSON object and must return:
+
+- diagnosis: string
+- evidence: list of strings
+- next_steps: list of strings
+- confidence: optional string
+
+The adapter maps those fields into ARW's structured incident diagnosis shape and then runs the same validation, guardrail, scoring, and comparison flow.
+
+See `examples/http-json-agent/` for a runnable local target.
+
+## Error Shape
+
+Errors use FastAPI's `detail` field with a predictable object where practical:
 
 - error
 - message
@@ -244,6 +321,6 @@ Use one predictable error shape:
 
 ## Notes
 
-For MVP, the API can run synchronously.
+For MVP, the API runs synchronously.
 
 Later, long-running agent executions can move to a background worker and expose polling or streaming.

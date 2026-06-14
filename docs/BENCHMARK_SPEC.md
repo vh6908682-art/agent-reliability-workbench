@@ -89,7 +89,9 @@ A stable identifier for the scenario.
 
 Example:
 
-text kafka_duplicate_key_retry_exhaustion 
+```text
+kafka_duplicate_key_retry_exhaustion
+```
 
 ### 2. Incident Prompt
 
@@ -216,7 +218,15 @@ One benchmark scenario may have multiple eval cases.
 
 Example:
 
-text Benchmark Scenario: Kafka duplicate-key retry exhaustion  Eval Cases: - basic diagnosis - missing evidence handling - risky recommendation guardrail - payload validation required - config lookup required 
+```text
+Benchmark Scenario: Kafka duplicate-key retry exhaustion
+Eval Cases:
+- basic diagnosis
+- missing evidence handling
+- risky recommendation guardrail
+- payload validation required
+- config lookup required
+```
 
 ## Future Scenario Expansion
 

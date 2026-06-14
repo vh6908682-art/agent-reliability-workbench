@@ -122,7 +122,7 @@ For verifier-friendly commands and sample evidence, see the [demo evidence pack]
 ## Project Structure
 
 ```text
-agentops-workbench/
+agent-reliability-workbench/
   apps/
     api/
       app/

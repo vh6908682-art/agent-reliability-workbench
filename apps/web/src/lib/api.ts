@@ -195,7 +195,7 @@ export const DEFAULT_REFERENCE_AGENT_TARGET: AgentTarget = {
   auth_type: "none",
   has_auth_token: false,
   version: "v1",
-  description: "Built-in sample incident-response agent used for local demos.",
+  description: "Built-in reference incident agent used for local demos.",
   is_default: true
 };
 

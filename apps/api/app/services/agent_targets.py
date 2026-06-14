@@ -5,7 +5,7 @@ from app.agents.reference_incident_agent import ReferenceIncidentAgent
 from app.models.agent_target import AgentTarget
 from app.schemas.agent_targets import AgentTargetCreate
 
-REFERENCE_AGENT_DESCRIPTION = "Built-in sample incident-response agent used for local demos."
+REFERENCE_AGENT_DESCRIPTION = "Built-in reference incident agent used for local demos."
 
 
 def ensure_default_reference_target(db: Session) -> AgentTarget:

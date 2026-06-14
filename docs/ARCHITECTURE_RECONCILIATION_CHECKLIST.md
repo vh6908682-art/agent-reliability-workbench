@@ -32,11 +32,24 @@ Prefer small edits that clarify:
 
 Review these files if they exist:
 
-text docs/architecture/system-overview.md docs/architecture/data-model.md docs/architecture/api-contract.md docs/architecture/codex-workflow.md docs/architecture/demo-script.md 
+```text
+docs/architecture/system-overview.md
+docs/architecture/data-model.md
+docs/architecture/api-contract.md
+docs/architecture/codex-workflow.md
+docs/architecture/demo-script.md
+```
 
 Also review:
 
-text README.md AGENTS.md docs/PROJECT_VISION.md docs/BENCHMARK_SPEC.md docs/EVAL_METHODOLOGY.md docs/ROADMAP.md 
+```text
+README.md
+AGENTS.md
+docs/PROJECT_VISION.md
+docs/BENCHMARK_SPEC.md
+docs/EVAL_METHODOLOGY.md
+docs/ROADMAP.md
+```
 
 ## Global Language Updates
 
@@ -44,11 +57,23 @@ Search existing docs for language that makes the project sound too narrow.
 
 Replace narrow framing such as:
 
-text AI incident triage demo incident debugging app Kafka error demo production incident chatbot debugging assistant demo 
+```text
+AI incident triage demo
+incident debugging app
+Kafka error demo
+production incident chatbot
+debugging assistant demo
+```
 
 With broader framing such as:
 
-text agent reliability workbench benchmark environment for tool-using agents agent observability and governance platform incident investigation benchmark repeatable agent evaluation workflow 
+```text
+agent reliability workbench
+benchmark environment for tool-using agents
+agent observability and governance platform
+incident investigation benchmark
+repeatable agent evaluation workflow
+```
 
 Do not remove the incident-investigation language entirely.
 
@@ -58,7 +83,9 @@ Instead, clarify that incident investigation is the first benchmark environment.
 
 File:
 
-text docs/architecture/system-overview.md 
+```text
+docs/architecture/system-overview.md
+```
 
 Check that this doc explains:
 
@@ -77,13 +104,15 @@ Avoid:
 
 Suggested sentence to include:
 
-text The current incident-investigation workflow is the first benchmark environment used to prove the platform’s core reliability loop: run, trace, validate, govern, evaluate, and compare. 
+> The current incident-investigation workflow is the first benchmark environment used to prove the platform's core reliability loop: run, trace, validate, govern, evaluate, and compare.
 
 ## Data Model Checklist
 
 File:
 
-text docs/architecture/data-model.md 
+```text
+docs/architecture/data-model.md
+```
 
 Check that this doc accurately describes current entities such as:
 
@@ -104,7 +133,7 @@ Instead, mention it as planned or fixture-level if appropriate.
 
 Useful clarification:
 
-text Benchmark scenarios may initially be represented through seed data, eval cases, mock tool responses, and documentation. A first-class scenario entity may be added later if needed. 
+> Benchmark scenarios may initially be represented through seed data, eval cases, mock tool responses, and documentation. A first-class scenario entity may be added later if needed.
 
 Check whether eval entities are clearly connected to benchmark behavior.
 
@@ -114,7 +143,9 @@ The data model should make it clear that evals are not generic tests only. They 
 
 File:
 
-text docs/architecture/api-contract.md 
+```text
+docs/architecture/api-contract.md
+```
 
 Check that this doc describes the APIs in terms of the current reliability loop:
 
@@ -132,13 +163,15 @@ Do not add API endpoints that do not exist yet unless clearly marked as future.
 
 Useful clarification:
 
-text The API surface supports the MVP reliability loop: create a run, inspect the trace, validate structured output, review guardrails and approval status, and execute deterministic evals. 
+> The API surface supports the MVP reliability loop: create a run, inspect the trace, validate structured output, review guardrails and approval status, and execute deterministic evals.
 
 ## Codex Workflow Checklist
 
 File:
 
-text docs/architecture/codex-workflow.md 
+```text
+docs/architecture/codex-workflow.md
+```
 
 Check that this doc aligns with the current implementation workflow:
 
@@ -153,25 +186,27 @@ Check that this doc aligns with the current implementation workflow:
 
 Add or confirm this rule:
 
-text If durable project context is needed, update the appropriate doc instead of adding long explanations to AGENTS.md. 
+> If durable project context is needed, update the appropriate doc instead of adding long explanations to AGENTS.md.
 
 Add or confirm this rule:
 
-text When a ticket touches benchmark, eval, trace, validation, or guardrail behavior, check the corresponding system-of-record docs before implementing. 
+> When a ticket touches benchmark, eval, trace, validation, or guardrail behavior, check the corresponding system-of-record docs before implementing.
 
 ## Demo Script Checklist
 
 File:
 
-text docs/architecture/demo-script.md 
+```text
+docs/architecture/demo-script.md
+```
 
 Check that the demo narrative is no longer:
 
-text Here is an AI that debugs a Kafka incident. 
+> Here is an AI that debugs a Kafka incident.
 
 It should become:
 
-text Here is a reliability workbench that benchmarks and observes a tool-using AI agent while it investigates a production-like incident. 
+> Here is a reliability workbench that benchmarks and observes a tool-using AI agent while it investigates a production-like incident.
 
 The demo should show:
 
@@ -188,13 +223,15 @@ The demo should show:
 
 Useful demo framing:
 
-text The point of the demo is not that the agent solved one Kafka issue. The point is that the platform makes the agent’s investigation observable, validated, governed, and repeatably evaluated. 
+> The point of the demo is not that the agent solved one Kafka issue. The point is that the platform makes the agent's investigation observable, validated, governed, and repeatably evaluated.
 
 ## README Checklist
 
 File:
 
-text README.md 
+```text
+README.md
+```
 
 The README should be public-facing and clear.
 
@@ -214,17 +251,19 @@ Avoid making claims that sound like a finished SaaS product if the project is st
 
 Possible positioning:
 
-text Agent Reliability Workbench is a local-first platform for benchmarking and observing tool-using AI agents in production-like scenarios. 
+> Agent Reliability Workbench is a local-first platform for benchmarking and observing tool-using AI agents in production-like scenarios.
 
 Possible MVP description:
 
-text The current MVP uses an incident-investigation benchmark to demonstrate trace capture, structured validation, guardrails, approvals, evals, and run-level cost/latency visibility. 
+> The current MVP uses an incident-investigation benchmark to demonstrate trace capture, structured validation, guardrails, approvals, evals, and run-level cost/latency visibility.
 
 ## PROJECT_VISION.md Checklist
 
 File:
 
-text docs/PROJECT_VISION.md 
+```text
+docs/PROJECT_VISION.md
+```
 
 Check that this doc clearly answers:
 
@@ -241,7 +280,9 @@ It should be inspiring but not bloated.
 
 File:
 
-text docs/BENCHMARK_SPEC.md 
+```text
+docs/BENCHMARK_SPEC.md
+```
 
 Check that this doc clearly defines:
 
@@ -260,7 +301,9 @@ Make sure it does not promise unimplemented product features as already done.
 
 File:
 
-text docs/EVAL_METHODOLOGY.md 
+```text
+docs/EVAL_METHODOLOGY.md
+```
 
 Check that this doc clearly defines:
 
@@ -282,7 +325,9 @@ Make sure the methodology aligns with current and near-future implementation.
 
 File:
 
-text docs/ROADMAP.md 
+```text
+docs/ROADMAP.md
+```
 
 Check that roadmap stages are realistic.
 
@@ -310,7 +355,24 @@ Avoid prioritizing:
 
 Across all docs, use these terms consistently:
 
-text Agent Reliability Workbench benchmark scenario benchmark environment tool-using AI agent agent run trace tool call structured output validation guardrail approval eval case eval run eval result scenario evidence expected findings 
+```text
+Agent Reliability Workbench
+benchmark scenario
+benchmark environment
+tool-using AI agent
+agent run
+trace
+tool call
+structured output
+validation
+guardrail
+approval
+eval case
+eval run
+eval result
+scenario evidence
+expected findings
+```
 
 Avoid switching between many names for the same thing.
 

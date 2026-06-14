@@ -137,7 +137,17 @@ Improvements:
 
 Possible scenario metadata:
 
-text id="dazigf" scenario_id title description incident_prompt available_tools evidence_sources expected_findings risk_profile eval_case_ids 
+```text
+scenario_id
+title
+description
+incident_prompt
+available_tools
+evidence_sources
+expected_findings
+risk_profile
+eval_case_ids
+```
 
 Suggested tickets:
 
@@ -356,7 +366,7 @@ Goal: explain the project clearly to technical readers.
 
 The strongest public narrative is:
 
-text id="0xxvgs" I built a reliability workbench for tool-using AI agents: benchmark scenarios, trace inspection, structured validation, guardrails, approvals, evals, latency, token, and cost visibility. 
+> I built a reliability workbench for tool-using AI agents: benchmark scenarios, trace inspection, structured validation, guardrails, approvals, evals, latency, token, and cost visibility.
 
 Possible blog themes:
 
@@ -404,6 +414,6 @@ These may become useful later, but they are not the next best step.
 
 The next strong version of Agent Reliability Workbench should allow a user to say:
 
-text id="usulqu" Here is a benchmark scenario for a tool-using incident agent. I can run the agent, inspect every step, see the evidence it used, validate the output, enforce guardrails, run evals, and compare whether changes improved or worsened behavior. 
+> Here is a benchmark scenario for a tool-using incident agent. I can run the agent, inspect every step, see the evidence it used, validate the output, enforce guardrails, run evals, and compare whether changes improved or worsened behavior.
 
 That is the product foundation.

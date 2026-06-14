@@ -1,7 +1,7 @@
 [project]
-name = "agentops-workbench-api"
+name = "agent-reliability-workbench-api"
 version = "0.1.0"
-description = "FastAPI backend for AgentOps Workbench."
+description = "FastAPI backend for Agent Reliability Workbench."
 requires-python = ">=3.11"
 dependencies = [
     "alembic",

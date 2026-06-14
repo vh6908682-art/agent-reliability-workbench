@@ -112,12 +112,33 @@ For verifier-friendly commands and sample evidence, see the [demo evidence pack]
 
 ## Screenshots
 
-> TODO: Add screenshots or GIFs of:
->
-> - Agent run form
-> - Trace viewer
-> - Eval runner
-> - Eval comparison dashboard
+Dashboard and run form:
+
+![Dashboard and run form](docs/assets/dashboard.png)
+
+Trace viewer and run details:
+
+![Trace viewer and run details](docs/assets/trace-viewer.png)
+
+Eval runner and results:
+
+![Eval runner and results](docs/assets/eval-runner.png)
+
+Eval comparison:
+
+![Eval comparison](docs/assets/eval-comparison.png)
+
+Agent targets:
+
+![Agent targets](docs/assets/agent-targets.png)
+
+Regenerate screenshots locally after starting the API and web app:
+
+```bash
+cd apps/web
+npx playwright install chromium
+npm run screenshots
+```
 
 ## Project Structure
 

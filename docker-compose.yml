@@ -1,18 +1,18 @@
 services:
   postgres:
     image: postgres:16
-    container_name: agentops-workbench-postgres
+    container_name: agent-reliability-workbench-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: agentops
-      POSTGRES_USER: agentops
-      POSTGRES_PASSWORD: agentops
+      POSTGRES_DB: arw
+      POSTGRES_USER: arw
+      POSTGRES_PASSWORD: arw_local_password
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentops -d agentops"]
+      test: ["CMD-SHELL", "pg_isready -U arw -d arw"]
       interval: 5s
       timeout: 5s
       retries: 5

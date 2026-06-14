@@ -250,15 +250,21 @@ External target example:
 - `examples/http-json-agent/README.md`
 - `examples/http-json-agent/server.py`
 
-Screenshot capture checklist:
+Public screenshot assets:
 
-- Save dashboard screenshot as `docs/screenshots/dashboard.png`.
-- Save agent target registry screenshot as `docs/screenshots/agent-targets.png`.
-- Save run trace screenshot as `docs/screenshots/run-trace.png`.
-- Save eval runner screenshot as `docs/screenshots/eval-runner.png`.
-- Save eval comparison screenshot as `docs/screenshots/eval-comparison.png`.
+- `docs/assets/dashboard.png`
+- `docs/assets/trace-viewer.png`
+- `docs/assets/eval-runner.png`
+- `docs/assets/eval-comparison.png`
+- `docs/assets/agent-targets.png`
 
-Screenshots are not currently committed, so the paths above are placeholders for local demo capture.
+Regenerate screenshots after running the seeded API and local frontend:
+
+```bash
+cd apps/web
+npx playwright install chromium
+npm run screenshots
+```
 
 ## Known Limitations
 

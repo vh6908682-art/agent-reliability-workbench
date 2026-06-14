@@ -108,6 +108,7 @@ Sample benchmark outputs are available in `docs/examples/`:
 - [Sample eval comparison](docs/examples/sample-eval-comparison.json)
 
 For a walkthrough narrative, see the [demo script](docs/DEMO_SCRIPT.md).
+For verifier-friendly commands and sample evidence, see the [demo evidence pack](docs/DEMO_EVIDENCE.md).
 
 ## Screenshots
 

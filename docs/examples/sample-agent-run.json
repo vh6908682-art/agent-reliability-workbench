@@ -38,6 +38,11 @@
       }
     ]
   },
+  "agent_under_test": {
+    "name": "ReferenceIncidentAgent",
+    "version": "v1",
+    "type": "reference"
+  },
   "approval_status": "approved",
   "requires_approval": false,
   "latency_ms": 1386,

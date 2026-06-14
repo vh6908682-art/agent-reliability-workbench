@@ -4,7 +4,7 @@ This document defines the MVP evaluation approach for Agent Reliability Workbenc
 
 The goal is not to build a perfect eval platform immediately. The goal is to show that an explicit Agent Under Test can be tested, tracked, and debugged.
 
-The bundled `ReferenceIncidentAgent` is the default sample target for local demos. It uses the built-in incident investigation workflow, while the eval runner remains the benchmark harness that validates, scores, and compares the candidate output.
+The bundled `ReferenceIncidentAgent` is the default reference target for local demos. External HTTP JSON Agent Targets can also be selected. The eval runner remains the benchmark harness that validates, scores, and compares the candidate output.
 
 ## MVP eval goal
 
@@ -83,6 +83,7 @@ LLM-as-judge can be added later, but deterministic evals are better for the MVP 
 
 Each eval result should show:
 
+- Agent Under Test identity
 - passed
 - score
 - found keywords
@@ -96,7 +97,7 @@ Later versions may add:
 
 - LLM-as-judge
 - regression tracking over time
-- comparison across models
+- comparison across Agent Targets and models
 - cost and latency thresholds
 - golden dataset management
 - human review workflow

@@ -53,7 +53,7 @@ POST /agent-targets
 
 Purpose:
 
-Register an HTTP JSON agent target for future benchmark execution.
+Register an HTTP JSON agent target for benchmark execution.
 
 Request body:
 
@@ -81,7 +81,7 @@ POST /api/runs
 
 Purpose:
 
-Start a new incident triage agent run.
+Start a new incident investigation run against the default reference Agent Target.
 
 Request body:
 
@@ -204,7 +204,7 @@ GET /api/eval-cases
 
 Purpose:
 
-Show available demo eval cases.
+Show available benchmark eval cases.
 
 Response:
 
@@ -224,7 +224,7 @@ POST /api/eval-cases/{eval_case_id}/run
 
 Purpose:
 
-Run one eval case through the agent.
+Run one eval case through the selected Agent Under Test.
 
 Response:
 

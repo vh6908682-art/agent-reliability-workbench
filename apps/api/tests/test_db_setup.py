@@ -26,4 +26,4 @@ def test_alembic_metadata_is_available() -> None:
 
 
 def test_app_still_boots() -> None:
-    assert app.title == "AgentOps Workbench API"
+    assert app.title == "Agent Reliability Workbench API"

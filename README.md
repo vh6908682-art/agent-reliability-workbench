@@ -2,9 +2,9 @@
 
 Agent Reliability Workbench is a local-first platform for benchmarking, tracing, validating, and governing tool-using AI agents.
 
-Agent Reliability Workbench benchmarks a pluggable **Agent Under Test**. The current repo includes a `ReferenceIncidentAgent` that implements the incident-investigation workflow used for local demos and benchmark validation. Future users can plug in their own agent behind the same interface and run the same benchmark/eval suite.
+Agent Reliability Workbench benchmarks a pluggable **Agent Under Test**. The current repo includes a `ReferenceIncidentAgent` that implements the incident-investigation workflow used for local demos and benchmark validation. Teams can also register an external HTTP JSON agent target and run the same benchmark/eval suite against it.
 
-The backend tracks the benchmark subject as an **Agent Target**. The bundled `ReferenceIncidentAgent` is the default system-managed target for local demos, and the registry can store future HTTP JSON targets so teams can connect their own agents without changing the benchmark harness.
+The backend tracks the benchmark subject as an **Agent Target**. The bundled `ReferenceIncidentAgent` is the default system-managed reference target for local demos, and the registry stores HTTP JSON targets so teams can connect their own agents without changing the benchmark harness.
 
 The current benchmark environment is incident investigation. The MVP focuses on a production-like Kafka duplicate-key retry exhaustion incident so agent behavior can be inspected end to end:
 
@@ -32,7 +32,7 @@ Implemented capabilities include:
 - Capture latency, token, model, prompt, workflow, toolset, guardrail, and estimated cost metadata where available.
 - Run deterministic eval cases.
 - Compare eval results across persisted run and configuration metadata.
-- Register and inspect Agent Targets, including the default bundled reference agent.
+- Register, inspect, and test Agent Targets, including the default bundled reference agent and external HTTP JSON agents.
 - Show agent runs, traces, evals, recent runs, approval state, and comparison views in the frontend.
 
 This is not currently a hosted production system, a multi-agent orchestration platform, or a real production log/Kafka integration. Those belong on the roadmap unless a future ticket explicitly implements them.
@@ -45,7 +45,7 @@ The golden-path benchmark starts with this incident prompt:
 
 The agent investigates using local benchmark context, including seeded logs, runbooks, schemas, and configuration-like evidence. The system captures trace steps, retrieved context, structured diagnosis, validation result, guardrail status, approval state, cost/latency metadata, and eval score.
 
-Eval comparison then makes it possible to compare agent configurations over repeatable benchmark cases instead of judging a single final answer by feel.
+Eval comparison then makes it possible to compare prompt versions, model/config metadata, and Agent Targets over repeatable benchmark cases instead of judging a single final answer by feel.
 
 ## Quickstart
 
@@ -95,7 +95,7 @@ The web app runs at:
 
 - Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL
 - Frontend: Next.js, React, TypeScript, Tailwind CSS
-- Eval and agent layer: deterministic eval runner, prompt/config metadata, structured validation, guardrail checks
+- Eval and agent layer: deterministic eval runner, Agent Targets, HTTP JSON agent adapter, prompt/config metadata, structured validation, guardrail checks
 - Infrastructure: Docker Compose
 
 ## Example Outputs

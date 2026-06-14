@@ -3,7 +3,7 @@
 Agent Reliability Workbench is a monorepo developer platform for running, tracing, evaluating, debugging, and governing tool-using AI agents.
 
 The MVP focuses on one golden path: benchmarking an incident-investigation Agent Under Test.
-The bundled `ReferenceIncidentAgent` is the default sample target for local demos; the workbench owns the benchmark cases, trace capture, validation, guardrails, scoring, and comparison around that target.
+The bundled `ReferenceIncidentAgent` is the default reference target for local demos. Registered HTTP JSON Agent Targets can also be benchmarked through the same harness. The workbench owns the benchmark cases, trace capture, validation, guardrails, scoring, and comparison around whichever target is selected.
 
 Example user task:
 
@@ -24,8 +24,8 @@ Example user task:
 6. Platform stores the run, trace events, tool calls, validation result, latency, and estimated cost.
 7. User views the trace timeline in the UI.
 8. User can inspect reasoning artifacts, tool calls, errors, and final structured output.
-9. User can run an eval case against expected behavior.
-10. Later releases can add approvals, guardrails, and deployment promotion.
+9. User can run deterministic evals against the selected Agent Target.
+10. User can compare eval runs by agent target, prompt/config metadata, quality, latency, cost, and guardrail outcomes.
 
 ## MVP components
 
@@ -42,6 +42,7 @@ Responsibilities:
 - Show tool calls.
 - Show structured final output.
 - Show validation and eval results.
+- Register and test HTTP JSON Agent Targets.
 
 ### API service
 
@@ -53,6 +54,7 @@ Responsibilities:
 - Run the selected Agent Under Test through the backend adapter.
 - Validate final outputs with Pydantic.
 - Persist runs, trace events, tool calls, eval cases, and eval results.
+- Manage Agent Targets, including the default reference target and external HTTP JSON targets.
 - Estimate latency and cost metadata.
 - Read seed logs and seed documents for the bundled reference agent.
 
@@ -66,7 +68,8 @@ PostgreSQL stores durable platform data:
 - documents
 - eval cases
 - eval results
-- approval records, later
+- agent targets
+- approval records
 
 ### Seed data
 
@@ -82,8 +85,8 @@ Planned seed folders:
 
 ## Initial backend architecture
 
-The MVP should use a simple Agent Under Test adapter before adding heavier orchestration.
-The default adapter wraps the existing incident triage loop as `ReferenceIncidentAgent`; it is the sample benchmark subject, not the benchmark harness itself.
+The MVP uses a simple Agent Under Test adapter before adding heavier orchestration.
+The default adapter wraps the existing incident triage loop as `ReferenceIncidentAgent`; it is the reference benchmark subject, not the benchmark harness itself. The HTTP JSON adapter lets external agents receive the same eval tasks through a stable JSON contract.
 
 The loop should roughly be:
 

@@ -8,7 +8,7 @@ The goal is not only to check whether the final answer sounds correct. The goal 
 
 Evaluation should make agent behavior observable, repeatable, and comparable.
 
-The evaluator judges an explicit Agent Under Test. For local demos and default evals, that target is the bundled `ReferenceIncidentAgent`, which wraps the built-in incident investigation workflow. The benchmark harness is the product; the reference agent is only the default sample subject until future adapters connect external agents.
+The evaluator judges an explicit Agent Under Test. For local demos and default evals, that target is the bundled `ReferenceIncidentAgent`, which wraps the built-in incident investigation workflow. External HTTP JSON targets can also be registered and evaluated through the same harness. The benchmark harness is the product; the reference agent is the default benchmark subject, not the platform itself.
 
 ## Core Evaluation Question
 
@@ -292,6 +292,7 @@ The platform should make these differences visible.
 Evaluation should make it possible to compare runs across:
 
 - prompt versions
+- agent targets
 - agent versions
 - model versions
 - scenario versions
@@ -341,6 +342,7 @@ The current MVP supports deterministic eval execution over predefined eval cases
 
 The eval runner should display:
 
+- Agent Under Test identity
 - total cases
 - passed cases
 - failed cases

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AgentOps Workbench",
-  description: "Production layer for tool-using LLM agents"
+  title: "Agent Reliability Workbench",
+  description: "Benchmark and governance platform for tool-using agents"
 };
 
 export default function RootLayout({

@@ -83,6 +83,8 @@ The MVP includes:
 - latency, token, and cost metadata
 - recent runs panel
 - deterministic eval runner
+- Agent Target registry
+- HTTP JSON agent adapter
 - demo guide in the UI
 
 The MVP should be treated as the stable baseline.

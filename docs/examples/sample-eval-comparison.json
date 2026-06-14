@@ -15,7 +15,12 @@
       "prompt_version": "v1",
       "workflow_type": "incident_triage",
       "toolset_name": "mock_incident_tools",
-      "guardrail_mode": "standard"
+      "guardrail_mode": "standard",
+      "agent_under_test": {
+        "name": "ReferenceIncidentAgent",
+        "version": "v1",
+        "type": "reference"
+      }
     },
     {
       "eval_run_id": 205,
@@ -32,7 +37,12 @@
       "prompt_version": "v2",
       "workflow_type": "incident_triage",
       "toolset_name": "mock_incident_tools",
-      "guardrail_mode": "standard"
+      "guardrail_mode": "standard",
+      "agent_under_test": {
+        "name": "ReferenceIncidentAgent",
+        "version": "v1",
+        "type": "reference"
+      }
     }
   ]
 }

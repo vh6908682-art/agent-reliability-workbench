@@ -2,15 +2,10 @@
   "total": 12,
   "passed": 11,
   "failed": 1,
-  "config": {
-    "eval_run_id": 204,
-    "model_name": "deterministic_eval_llm",
-    "prompt_version": "v1",
-    "workflow_type": "incident_triage",
-    "toolset_name": "mock_incident_tools",
-    "guardrail_mode": "standard",
-    "latency_ms": null,
-    "estimated_cost_usd": null
+  "agent_under_test": {
+    "name": "ReferenceIncidentAgent",
+    "version": "v1",
+    "type": "reference"
   },
   "results": [
     {

@@ -2,9 +2,9 @@
 
 Agent Reliability Workbench is a local-first platform for benchmarking, tracing, validating, and governing tool-using AI agents.
 
-Agent Reliability Workbench benchmarks a pluggable **Agent Under Test**. The current repo includes a `ReferenceIncidentAgent` that implements the incident-investigation workflow used for local demos and benchmark validation. Teams can also register an external HTTP JSON agent target and run the same benchmark/eval suite against it.
+Agent Reliability Workbench benchmarks a pluggable **Agent Under Test**. The public demo path registers a local external HTTP JSON sample agent and runs the benchmark/eval suite against that real endpoint boundary.
 
-The backend tracks the benchmark subject as an **Agent Target**. The bundled `ReferenceIncidentAgent` is the default system-managed reference target for local demos, and the registry stores HTTP JSON targets so teams can connect their own agents without changing the benchmark harness.
+The backend tracks the benchmark subject as an **Agent Target**. The bundled `ReferenceIncidentAgent` remains a system-managed baseline/fallback target, while HTTP JSON targets let teams connect their own agents without changing the benchmark harness.
 
 The current benchmark environment is incident investigation. The MVP focuses on a production-like Kafka duplicate-key retry exhaustion incident so agent behavior can be inspected end to end:
 
@@ -32,7 +32,7 @@ Implemented capabilities include:
 - Capture latency, token, model, prompt, workflow, toolset, guardrail, and estimated cost metadata where available.
 - Run deterministic eval cases.
 - Compare eval results across persisted run and configuration metadata.
-- Register, inspect, and test Agent Targets, including the default bundled reference agent and external HTTP JSON agents.
+- Register, inspect, and test Agent Targets, including external HTTP JSON agents and the bundled reference baseline.
 - Show agent runs, traces, evals, recent runs, approval state, and comparison views in the frontend.
 
 This is not currently a hosted production system, a multi-agent orchestration platform, or a real production log/Kafka integration. Those belong on the roadmap unless a future ticket explicitly implements them.
@@ -46,6 +46,20 @@ The golden-path benchmark starts with this incident prompt:
 The agent investigates using local benchmark context, including seeded logs, runbooks, schemas, and configuration-like evidence. The system captures trace steps, retrieved context, structured diagnosis, validation result, guardrail status, approval state, cost/latency metadata, and eval score.
 
 Eval comparison then makes it possible to compare prompt versions, model/config metadata, and Agent Targets over repeatable benchmark cases instead of judging a single final answer by feel.
+
+## Public Demo Flow
+
+The recommended demo proves the pluggable Agent Under Test boundary:
+
+1. Start Docker, the API, and the web app.
+2. Start the sample external HTTP JSON agent in `examples/http-json-agent` on port `9000`.
+3. Register `Local Sample HTTP Agent` as an Agent Target with endpoint `http://localhost:9000/agent`.
+4. Test the target from the Agent Targets section.
+5. Select that external target and run benchmark evals.
+6. Open the eval details to inspect per-case checks, pass/fail outcomes, and keyword evidence.
+7. Open the trace/review panels for individual runs and the comparison view for persisted eval results.
+
+The key demo point is that ARW owns the benchmark, validation, guardrails, and comparison workflow while the agent under test can be an external service.
 
 ## Quickstart
 
@@ -91,6 +105,18 @@ The web app runs at:
 
 - http://localhost:3000
 
+Start the external sample agent in a third terminal:
+
+```bash
+cd examples/http-json-agent
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn server:app --host 0.0.0.0 --port 9000
+```
+
+Then open the UI, register `http://localhost:9000/agent` in Agent Targets, test it, select it, and run benchmark evals against the external HTTP JSON Agent Under Test.
+
 ## Tech Stack
 
 - Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL
@@ -132,7 +158,7 @@ Agent targets:
 
 ![Agent targets](docs/assets/agent-targets.png)
 
-Regenerate screenshots locally after starting the API and web app:
+Regenerate screenshots locally after starting the API, web app, and sample external agent:
 
 ```bash
 cd apps/web

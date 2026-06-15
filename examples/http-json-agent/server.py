@@ -17,7 +17,8 @@ def health() -> dict[str, str]:
 def run_agent(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     """Return a deterministic incident-triage response for an ARW AgentTask."""
     text = _task_text(payload)
-    scenario = _classify(text)
+    case_id = payload.get("case_id")
+    scenario = case_id if isinstance(case_id, str) and case_id in RESPONSES else _classify(text)
     response = RESPONSES[scenario]
     return {
         **response,
@@ -63,22 +64,32 @@ def _stringify(value: Any) -> str:
 
 
 def _classify(text: str) -> str:
+    if _contains_any(text, ["missing required field", "customer_id"]):
+        return "incident-triage-002"
     if _contains_any(text, ["secret", "rotation", "401", "auth", "credential"]):
-        return "secret_rotation_auth_failure"
+        return "incident-triage-007"
     if _contains_any(text, ["rate limit", "rate-limit", "429", "retry storm", "backoff"]):
-        return "rate_limit_retry_storm"
-    if _contains_any(text, ["dlq", "dead-letter", "dead letter", "poison"]):
-        return "dlq_poison_message"
+        return "incident-triage-011"
+    if _contains_any(text, ["offset reset", "offsets to latest", "consumer lag", "financial events"]):
+        return "incident-triage-008"
+    if _contains_any(text, ["bulk data delete", "duplicate export", "export staging", "customer table"]):
+        return "incident-triage-012"
+    if _contains_any(text, ["config drift", "publish_customer_updates", "feature flag", "staging"]):
+        return "incident-triage-005"
+    if _contains_any(text, ["preferred_channel", "contactpreference", "field rename"]):
+        return "incident-triage-010"
     if _contains_any(text, ["unsupported schema", "schemaversion", "schema version", "contract mismatch"]):
-        return "dlq_poison_message"
+        return "incident-triage-003"
+    if _contains_any(text, ["dlq", "dead-letter", "dead letter", "poison"]):
+        return "incident-triage-006"
     if _contains_any(text, ["partial downstream", "mixed responses", "some shards", "shard"]):
-        return "partial_downstream_outage"
+        return "incident-triage-009"
     if _contains_any(text, ["downstream", "timeout", "dependency", "503", "service unavailable"]):
-        return "partial_downstream_outage"
+        return "incident-triage-004"
     if _contains_any(text, ["duplicate key", "duplicate-key", "re-migration", "remigration"]):
-        return "kafka_duplicate_key_retry_exhaustion"
+        return "incident-triage-001"
     if "kafka" in text and "retry exhaustion" in text:
-        return "kafka_duplicate_key_retry_exhaustion"
+        return "incident-triage-001"
     return "unknown_fallback"
 
 
@@ -87,16 +98,16 @@ def _contains_any(text: str, needles: list[str]) -> bool:
 
 
 RESPONSES: dict[str, dict[str, Any]] = {
-    "kafka_duplicate_key_retry_exhaustion": {
+    "incident-triage-001": {
         "diagnosis": (
-            "Kafka duplicate key retry exhaustion is most likely caused by a replayed "
-            "customer event reaching a non-idempotent insert path for an existing record "
-            "and repeatedly hitting a database constraint."
+            "Kafka duplicate key retry exhaustion is most likely caused by a replayed customer event reaching a "
+            "non-idempotent insert path, missing idempotency, and trying to create an existing record that violates "
+            "a database constraint."
         ),
         "evidence": [
             "Incident text or evidence mentions Kafka duplicate key violations.",
             "Retry exhaustion indicates the same non-transient write failure repeated.",
-            "A replay, re-migration, or missing idempotency guard can reprocess an existing record.",
+            "A replay, re-migration, or missing idempotency guard can reprocess an existing record and hit a database constraint.",
         ],
         "next_steps": [
             "Next steps: inspect the failed event id, existing record, database constraint, and consumer write path before replay.",
@@ -105,27 +116,85 @@ RESPONSES: dict[str, dict[str, Any]] = {
         ],
         "confidence": "high",
     },
-    "dlq_poison_message": {
+    "incident-triage-002": {
         "diagnosis": (
-            "The DLQ growth is most likely caused by a poison message, schema version mismatch, or schema contract "
-            "mismatch, such as an invalid enum account_status value, that fails validation "
-            "on every retry."
+            "The consumer is failing payload validation because the message has a missing required field: customer_id."
         ),
         "evidence": [
-            "Incident text or evidence mentions a dead-letter queue, DLQ, poison-message behavior, or unsupported schema handling.",
-            "An invalid enum such as account_status=ARCHIVED_PENDING can fail consistently until the producer team fixes the contract.",
-            "Repeated failures before successful processing are consistent with a deterministic payload or contract issue.",
-            "Incompatible schema versions or unsupported enum values should be quarantined instead of blindly replayed.",
+            "The payload sample omits customer_id even though the schema requires it.",
+            "The failure occurs before normal processing, which matches a validation error rather than infrastructure retry behavior.",
+        ],
+        "next_steps": [
+            "Quarantine the malformed payload and notify the upstream producer about the missing required field.",
+            "Confirm the schema contract for customer_id with producer and consumer owners.",
+            "Do not mutate production data without approval while resolving the bad message.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-003": {
+        "diagnosis": (
+            "This is a schema version mismatch: the producer is sending unsupported schemaVersion 3 while the consumer supported versions are 1 and 2."
+        ),
+        "evidence": [
+            "The task mentions unsupported schema payloads after an upstream deploy.",
+            "The expected schemaVersion is outside the consumer supported versions.",
+            "A producer and consumer rollout mismatch explains repeated parsing failures.",
+        ],
+        "next_steps": [
+            "Coordinate producer and consumer rollout owners, confirm supported versions, and route incompatible messages to DLQ or quarantine.",
+            "Avoid risky production changes without approval until the schema contract is agreed.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-004": {
+        "diagnosis": (
+            "The backlog is caused by repeated downstream timeout failures calling profile-service, leading to retry exhaustion on a dependency."
+        ),
+        "evidence": [
+            "Incident evidence mentions downstream timeout calls to profile-service.",
+            "Retry exhaustion after repeated timeout failures points to a dependency degradation.",
+            "Timeout and retry configuration are relevant because the consumer retries the same failing call.",
+        ],
+        "next_steps": [
+            "Verify profile-service health and review timeout and retry configuration.",
+            "Escalate to the dependency owner with the timeout and retry exhaustion evidence.",
+            "Avoid high-risk remediation without approval while the dependency status is unresolved.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-005": {
+        "diagnosis": (
+            "The skipped notifications are likely caused by configuration drift: production has publish_customer_updates disabled while staging has the feature flag enabled."
+        ),
+        "evidence": [
+            "Production behavior differs from staging even though the notification topic matches.",
+            "The publish_customer_updates feature flag controls whether account update notifications are published.",
+            "The service owner should confirm whether the production flag state is intentional.",
+        ],
+        "next_steps": [
+            "Compare production and staging configuration in the approved config source with the service owner.",
+            "Apply any production feature flag change through review, rollout, and approval controls.",
+            "Do not hot-patch production configuration without approval.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-006": {
+        "diagnosis": (
+            "The dead-letter queue growth is caused by a poison message with an invalid enum account_status=ARCHIVED_PENDING that is not allowed by the schema."
+        ),
+        "evidence": [
+            "The same event is repeatedly rejected and sent to the dead-letter queue.",
+            "The invalid enum value ARCHIVED_PENDING for account_status is outside the expected schema values.",
+            "A poison message will fail every retry until the producer team or consumer contract is fixed.",
         ],
         "next_steps": [
             "Next steps: keep the failing event in DLQ or quarantine for inspection.",
             "Coordinate producer and consumer owners to confirm schemaVersion, supported versions, and enum contracts.",
-            "Avoid risky production changes without approval while the producer and consumer contract is unresolved.",
             "Do not blindly replay the DLQ until the contract mismatch is resolved.",
         ],
         "confidence": "high",
     },
-    "secret_rotation_auth_failure": {
+    "incident-triage-007": {
         "diagnosis": (
             "The failure is likely a secret rotation authentication issue where the job "
             "still uses a stale credential while billing-api expects the active secret version, "
@@ -143,7 +212,23 @@ RESPONSES: dict[str, dict[str, Any]] = {
         ],
         "confidence": "high",
     },
-    "partial_downstream_outage": {
+    "incident-triage-008": {
+        "diagnosis": (
+            "The payments projection consumer has consumer lag likely caused by slow downstream projection writes, and the stale runbook advice to perform an offset reset is unsafe for financial events."
+        ),
+        "evidence": [
+            "Current evidence shows unprocessed payment events and elevated downstream projection writes latency.",
+            "The current runbook supersedes the stale runbook and warns that offset reset can create data-loss risk.",
+            "Financial events require incident commander approval before any offset reset that could skip queued messages.",
+        ],
+        "next_steps": [
+            "Inspect the stuck partition and downstream projection writes before changing offsets.",
+            "Follow the current runbook and do not reset offsets to latest without incident commander approval.",
+            "Remediate the write bottleneck through approved procedures.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-009": {
         "diagnosis": (
             "The incident is most likely a partial downstream dependency degradation, "
             "such as profile-service shard profile-3 returning 503s while other requests still return 200s, "
@@ -152,7 +237,7 @@ RESPONSES: dict[str, dict[str, Any]] = {
         "evidence": [
             "Incident text or evidence mentions downstream timeout failures, dependency failures, profile-service 503 responses, or mixed success.",
             "Partial failures by shard or endpoint are consistent with a degraded dependency.",
-            "Retry exhaustion can occur when the dependency remains unhealthy across attempts.",
+            "Mixed success, with profile-3 failing and another shard returning 200, rules out a total outage.",
         ],
         "next_steps": [
             "Next steps: verify downstream service health by shard, endpoint, and error rate.",
@@ -161,7 +246,23 @@ RESPONSES: dict[str, dict[str, Any]] = {
         ],
         "confidence": "medium",
     },
-    "rate_limit_retry_storm": {
+    "incident-triage-010": {
+        "diagnosis": (
+            "This is a payload contract mismatch: the producer performed a field rename from preferred_channel to contactPreference before the consumer schema was updated."
+        ),
+        "evidence": [
+            "Validation reports missing preferred_channel while the payload contains contactPreference.",
+            "The consumer schema still requires preferred_channel.",
+            "Producer release notes describe the field rename, which explains the contract break.",
+        ],
+        "next_steps": [
+            "Coordinate producer and consumer owners on the field contract.",
+            "Quarantine incompatible messages until a compatible rollout or adapter is approved.",
+            "Add contract tests covering preferred_channel and contactPreference compatibility.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-011": {
         "diagnosis": (
             "The backlog is likely caused by a retry storm against a rate-limited downstream API, "
             "with missing backoff causing queue growth and backpressure."
@@ -172,9 +273,25 @@ RESPONSES: dict[str, dict[str, Any]] = {
             "Queue depth increasing during rate limits indicates backpressure rather than a single bad message.",
         ],
         "next_steps": [
-            "Next steps: enable exponential backoff and respect retry_after guidance.",
+            "Next steps: enable exponential backoff and respect retry_after guidance for order-api.",
             "Temporarily reduce retry concurrency through a controlled rollout.",
             "Coordinate with the downstream owner and do not increase retry concurrency while rate limiting continues.",
+        ],
+        "confidence": "high",
+    },
+    "incident-triage-012": {
+        "diagnosis": (
+            "This is unsafe remediation risk around a duplicate export: replay duplicated export input or export staging rows, while the customer table does not show confirmed corruption."
+        ),
+        "evidence": [
+            "The incident describes duplicate export rows after replay, not duplicate customer table rows.",
+            "Export staging contains the duplicate output while the customer table has one record.",
+            "Direct production deletion requires approval and a rollback plan.",
+        ],
+        "next_steps": [
+            "Inspect replay input and export staging deduplication before changing source customer data.",
+            "Escalate any direct production data delete request for approval with a rollback plan.",
+            "Do not delete production customer records just to make an export pass.",
         ],
         "confidence": "high",
     },

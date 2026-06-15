@@ -2,7 +2,7 @@
 
 This evidence pack gives a recruiter or reviewer a direct way to verify Agent Reliability Workbench end to end.
 
-ARW is a local-first benchmark and governance workbench for tool-using agents. The default Agent Under Test is the built-in `ReferenceIncidentAgent`; registered HTTP JSON Agent Targets can also be benchmarked through the same eval harness.
+ARW is a local-first benchmark and governance workbench for tool-using agents. The public demo Agent Under Test is the external sample HTTP JSON agent in `examples/http-json-agent/`; the built-in `ReferenceIncidentAgent` remains available as a baseline/fallback.
 
 ## End-To-End Checklist
 
@@ -31,21 +31,33 @@ ARW is a local-first benchmark and governance workbench for tool-using agents. T
    npm run dev
    ```
 
-4. Open `http://localhost:3000`.
+4. Start the external sample agent in a third terminal.
 
-5. Run the default incident task against the reference agent:
+   ```bash
+   cd examples/http-json-agent
+   python -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -r requirements.txt
+   python -m uvicorn server:app --host 0.0.0.0 --port 9000
+   ```
+
+5. Open `http://localhost:3000`.
+
+6. Register `Local Sample HTTP Agent` in Agent Targets with endpoint `http://localhost:9000/agent`, then test the target.
+
+7. Select `Local Sample HTTP Agent` for benchmarking.
+
+8. Optionally run the default incident task to inspect trace/review behavior:
 
    ```text
    A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.
    ```
 
-6. Inspect the run detail and confirm trace, validation, guardrail, approval, latency, token, cost, prompt, workflow, and Agent Under Test metadata are visible.
+9. Inspect the run detail and confirm trace, validation, guardrail, approval, latency, token, cost, prompt, workflow, and Agent Under Test metadata are visible.
 
-7. Run benchmark evals against the selected Agent Under Test.
+10. Run benchmark evals against the selected external Agent Under Test.
 
-8. Open eval comparison and compare pass rate, score, latency, cost, guardrail failures, config metadata, and target identity across eval runs.
-
-9. Optional: run `examples/http-json-agent/`, register it as an HTTP JSON Agent Target, test the target, run evals against it, and compare results with `ReferenceIncidentAgent`.
+11. Open eval comparison and compare pass rate, score, latency, cost, guardrail failures, config metadata, and target identity across eval runs.
 
 ## Validation Commands
 
@@ -82,7 +94,49 @@ Expected shape:
 }
 ```
 
-Create a reference agent run:
+Confirm the sample external agent is healthy:
+
+```bash
+curl http://localhost:9000/health
+```
+
+Expected shape:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+Test the sample external agent contract directly:
+
+```bash
+curl -X POST http://localhost:9000/agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_id": "incident-triage-001",
+    "task": "A Kafka consumer failed while processing a customer update event. Logs show duplicate key violation and retry exhaustion. Diagnose likely cause and recommend next steps.",
+    "input": {
+      "incident_summary": "Kafka duplicate key retry exhaustion",
+      "available_evidence": []
+    }
+  }'
+```
+
+Expected response shape:
+
+```json
+{
+  "diagnosis": "... duplicate key ... retry exhaustion ...",
+  "evidence": ["..."],
+  "next_steps": ["..."],
+  "confidence": "high",
+  "sample_agent": "LocalSampleHttpJsonAgent",
+  "matched_scenario": "incident-triage-001"
+}
+```
+
+Create a reference agent run if you want to inspect the built-in baseline:
 
 ```bash
 curl -X POST http://localhost:8000/agent-runs \
@@ -136,7 +190,7 @@ List Agent Targets:
 curl http://localhost:8000/agent-targets
 ```
 
-The response should include the system-managed `ReferenceIncidentAgent` target with `agent_type: "reference"` and `is_default: true`.
+The response should include the system-managed `ReferenceIncidentAgent` target with `agent_type: "reference"` and `is_default: true`. After registration, it should also include `Local Sample HTTP Agent` with `agent_type: "http_json"`.
 
 Create an external HTTP JSON Agent Target:
 
@@ -153,7 +207,7 @@ curl -X POST http://localhost:8000/agent-targets \
   }'
 ```
 
-Test an Agent Target:
+Test the external Agent Target:
 
 ```bash
 curl -X POST http://localhost:8000/agent-targets/<target_id>/test
@@ -172,17 +226,7 @@ Expected success shape:
 }
 ```
 
-Run evals against the default/reference target:
-
-```bash
-curl -X POST http://localhost:8000/evals/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt_version": "v1"
-  }'
-```
-
-Run evals against a selected Agent Target. Replace `2` with the `id` returned when the target was created.
+Run evals against the external Agent Target. Replace `2` with the `id` returned when the target was created.
 
 ```bash
 curl -X POST http://localhost:8000/evals/run \
@@ -205,22 +249,22 @@ Expected comparison row fields include:
 {
   "eval_run_id": 204,
   "total_cases": 12,
-  "passed": 11,
-  "failed": 1,
-  "pass_rate": 0.9167,
-  "avg_score": 0.91,
+  "passed": 12,
+  "failed": 0,
+  "pass_rate": 1.0,
+  "avg_score": 1.0,
   "avg_latency": 1240.0,
   "avg_cost": 0.0018,
   "guardrail_failure_count": 0,
-  "model_name": "deterministic_eval_llm",
+  "model_name": "gpt-4o-mini",
   "prompt_version": "v1",
   "workflow_type": "incident_triage",
   "toolset_name": "mock_incident_tools",
   "guardrail_mode": "standard",
   "agent_under_test": {
-    "name": "ReferenceIncidentAgent",
+    "name": "Local Sample HTTP Agent",
     "version": "v1",
-    "type": "reference"
+    "type": "http_json"
   }
 }
 ```
@@ -230,10 +274,11 @@ Expected comparison row fields include:
 - Dashboard loads at `http://localhost:3000`.
 - Agent run form can run the default Kafka duplicate-key incident.
 - Run detail shows final diagnosis, structured output, context sources, trace steps, validation status, guardrail result, approval state, latency, token counts, estimated cost, prompt version, workflow type, and Agent Under Test.
-- Agent Targets panel shows the built-in `ReferenceIncidentAgent`.
-- External HTTP JSON target can be registered and tested.
+- Agent Targets panel shows the built-in `ReferenceIncidentAgent` and the registered `Local Sample HTTP Agent`.
+- External HTTP JSON target can be registered, tested, and selected.
 - Eval runner supports Agent Under Test selection.
-- Eval results identify the target that was evaluated.
+- Eval results identify `Local Sample HTTP Agent` as the target that was evaluated.
+- Eval results show per-case checks and should not show a 0/12 reference-agent result as the main demo.
 - Eval comparison table displays pass rate, average score, latency, cost, guardrail failures, config metadata, and Agent Under Test information.
 
 ## Sample Evidence In Repo
@@ -258,7 +303,7 @@ Public screenshot assets:
 - `docs/assets/eval-comparison.png`
 - `docs/assets/agent-targets.png`
 
-Regenerate screenshots after running the seeded API and local frontend:
+Regenerate screenshots after running the seeded API, local frontend, and sample external agent:
 
 ```bash
 cd apps/web

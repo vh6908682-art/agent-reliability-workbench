@@ -1,5 +1,12 @@
 # Agent Reliability Workbench
 
+[![CI](https://github.com/vip-lade/agent-reliability-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/vip-lade/agent-reliability-workbench/actions/workflows/ci.yml)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+
 Agent Reliability Workbench is a local-first platform for benchmarking, tracing, validating, and governing tool-using AI agents.
 
 Agent Reliability Workbench benchmarks a pluggable **Agent Under Test**. The public demo path registers a local external HTTP JSON sample agent and runs the benchmark/eval suite against that real endpoint boundary.
@@ -9,6 +16,17 @@ The backend tracks the benchmark subject as an **Agent Target**. The bundled `Re
 The current benchmark environment is incident investigation. The MVP focuses on a production-like Kafka duplicate-key retry exhaustion incident so agent behavior can be inspected end to end:
 
 > run -> trace -> validate -> govern -> evaluate -> compare
+
+## Architecture Flow
+
+```mermaid
+flowchart LR
+  Reference[Reference incident agent] --> Adapter[Agent target adapter]
+  External[External HTTP JSON agent] --> Adapter
+  Adapter --> Runner[Eval runner]
+  Runner --> Checks[Trace, validation, and guardrails]
+  Checks --> Results[Results and comparison UI]
+```
 
 ## Why This Exists
 

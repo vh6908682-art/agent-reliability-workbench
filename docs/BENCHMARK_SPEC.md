@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Agent Reliability Workbench uses production-like incident scenarios as benchmark environments for evaluating tool-using AI agents.
+Agent Reliability Workbench uses domain-specific benchmark suites for evaluating tool-using AI agents.
 Each benchmark case is executed against an Agent Under Test. The default target is the built-in `ReferenceIncidentAgent`, and the same cases can run against registered external HTTP JSON agents.
 The backend represents the selected agent as an Agent Target. The default system-managed target is `ReferenceIncidentAgent`, and HTTP JSON targets allow external agents to be registered without changing the benchmark harness.
 
-The goal is not only to solve one incident. The goal is to measure whether an agent can investigate a realistic operational problem in a repeatable, observable, and governable way.
+The current built-in suite is `incident_triage_v1`, which uses production-like incident scenarios as the first benchmark environment. The goal is not only to solve one incident. The goal is to measure whether an agent can perform a realistic domain task in a repeatable, observable, and governable way.
 
 Each benchmark scenario should test the agent's ability to:
 
@@ -32,7 +32,7 @@ This makes the benchmark closer to a production reliability review than a simple
 
 ## Current Benchmark Environment
 
-The current benchmark environment is incident investigation.
+The current benchmark environment is incident investigation. The 12 seeded eval cases are the default `incident_triage_v1` suite.
 
 The agent receives a production-like incident and must investigate it using available tools and internal evidence.
 
@@ -45,6 +45,8 @@ This scenario is intentionally specific enough to be realistic, but general enou
 - structured output validation
 - deterministic eval cases
 - governance around risky recommendations
+
+These incident-triage cases are not universal tests for every kind of agent. Other agent categories should use their own benchmark suites with domain-specific tasks, evidence, expected outcomes, and risk checks.
 
 ## Current Scenario: Kafka Duplicate Key Incident
 
@@ -230,7 +232,7 @@ Eval Cases:
 
 ## Future Scenario Expansion
 
-The benchmark environment should expand beyond the initial Kafka incident.
+The incident benchmark environment should expand beyond the initial Kafka incident.
 
 Future scenarios may include:
 
@@ -247,6 +249,8 @@ Future scenarios may include:
 The goal is not to add random incidents.
 
 The goal is to create a scenario suite that tests different dimensions of agent reliability.
+
+Future benchmark suites can target other agent categories, such as customer support, refund decisioning, code review, compliance intake, or sales operations. Each suite should preserve the same reliability principles while defining domain-specific eval cases. For the current supported JSON structure and manual customization path, see [Custom Benchmark Suites](CUSTOM_BENCHMARK_SUITES.md).
 
 ## Reliability Dimensions
 

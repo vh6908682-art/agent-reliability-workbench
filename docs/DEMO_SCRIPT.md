@@ -82,7 +82,7 @@ The core loop is:
 
 8. Run benchmark evals with `Local Sample HTTP Agent` selected.
 
-   Show the 12 seeded incident cases, the external Agent Under Test identity, per-case scores, and individual checks such as `structured_output_valid`, `evidence_present`, and `expected_keywords_present`.
+   Show the 12 seeded `incident_triage_v1` cases, the external Agent Under Test identity, per-case scores, and individual checks such as `structured_output_valid`, `evidence_present`, and `expected_keywords_present`.
 
 9. Explain pass/fail checks.
 
@@ -114,6 +114,7 @@ The core loop is:
 - It is not fully multi-agent.
 - LangGraph or workflow orchestration is roadmap work, not the current MVP.
 - The current benchmark context uses deterministic local seed data, not real Kafka, production logs, or ticketing systems.
+- The included `incident_triage_v1` cases are incident-specific, not a universal benchmark for every agent domain.
 - The sample HTTP JSON agent is deterministic demo code, not a production LLM agent.
 
 ## Closing Line

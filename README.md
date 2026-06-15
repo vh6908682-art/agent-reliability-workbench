@@ -47,6 +47,12 @@ The agent investigates using local benchmark context, including seeded logs, run
 
 Eval comparison then makes it possible to compare prompt versions, model/config metadata, and Agent Targets over repeatable benchmark cases instead of judging a single final answer by feel.
 
+## Benchmark Suites
+
+ARW evaluates agents against domain-specific benchmark suites. The included default suite is `incident_triage_v1`, a 12-case incident-triage benchmark for agents that investigate production-like failures.
+
+These cases are not intended to evaluate arbitrary agents. To adapt ARW for another domain, create domain-specific eval cases that use the supported seed JSON structure. See [Custom Benchmark Suites](docs/CUSTOM_BENCHMARK_SUITES.md) for the current template, a non-incident example, and LLM-assisted drafting guidance.
+
 ## Public Demo Flow
 
 The recommended demo proves the pluggable Agent Under Test boundary:
@@ -209,4 +215,4 @@ Implemented work is intentionally focused on the local MVP. Future work may incl
 - Exportable benchmark reports.
 - Additional benchmark domains after incident investigation is stronger.
 
-See [Project Vision](docs/PROJECT_VISION.md), [Benchmark Spec](docs/BENCHMARK_SPEC.md), [Eval Methodology](docs/EVAL_METHODOLOGY.md), and [Roadmap](docs/ROADMAP.md) for the deeper product direction.
+See [Project Vision](docs/PROJECT_VISION.md), [Benchmark Spec](docs/BENCHMARK_SPEC.md), [Eval Methodology](docs/EVAL_METHODOLOGY.md), [Custom Benchmark Suites](docs/CUSTOM_BENCHMARK_SUITES.md), and [Roadmap](docs/ROADMAP.md) for the deeper product direction.

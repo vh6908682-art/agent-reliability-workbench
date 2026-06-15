@@ -2,9 +2,11 @@
 
 ## Purpose
 
-Agent Reliability Workbench evaluates tool-using AI agents in production-like benchmark scenarios.
+Agent Reliability Workbench evaluates tool-using AI agents in production-like benchmark suites.
 
-The goal is not only to check whether the final answer sounds correct. The goal is to measure whether the agent investigated the incident correctly, used tools appropriately, produced grounded evidence, respected guardrails, and returned valid structured output.
+The current built-in suite is `incident_triage_v1`. It is domain-specific: the 12 included eval cases test incident investigation behavior, not arbitrary agent quality across every possible workflow.
+
+The goal is not only to check whether the final answer sounds correct. For the current incident suite, the goal is to measure whether the agent investigated the incident correctly, used tools appropriately, produced grounded evidence, respected guardrails, and returned valid structured output. Future suites can apply the same workbench pattern to other categories of agents with domain-specific cases and expectations.
 
 Evaluation should make agent behavior observable, repeatable, and comparable.
 
@@ -133,7 +135,7 @@ These metrics allow comparison across prompts, models, and agent versions.
 
 ## Eval Case Structure
 
-Each eval case should define a specific test for the agent.
+Each eval case should define a specific test for the agent within a benchmark suite.
 
 A good eval case includes:
 
@@ -165,7 +167,7 @@ checks:
 pass_threshold: 0.8
 ```
 
-Eval cases should be deterministic and easy to run repeatedly.
+Eval cases should be deterministic and easy to run repeatedly. The current supported seed JSON shape is documented in [Custom Benchmark Suites](CUSTOM_BENCHMARK_SUITES.md).
 
 ## Check Types
 
@@ -370,6 +372,8 @@ Both should be visible in the run detail.
 
 The current MVP supports deterministic eval execution over predefined eval cases.
 
+The predefined cases currently form the `incident_triage_v1` suite. They are intentionally incident-triage-specific and should not be interpreted as universal tests for all agents. Users who want to evaluate another domain can manually replace or extend the seeded eval JSON with compatible cases; suite selection and import UI are future work.
+
 The eval runner should display:
 
 - Agent Under Test identity
@@ -397,7 +401,9 @@ Future improvements may include:
 - cost-adjusted scoring
 - latency-aware scoring
 - approval outcome tracking
+- uploaded or selectable benchmark suites for other agent categories
 - benchmark suites grouped by reliability dimension
+- assisted generation of draft eval cases for human review and calibration
 
 These should be added through small focused tickets.
 
